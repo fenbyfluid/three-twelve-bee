@@ -1,3 +1,10 @@
+/* noinspection CssInvalidAtRule */
 @import-normalize;
+/* noinspection CssInvalidImport */
 @import "~@blueprintjs/core/lib/css/blueprint.css";
+/* noinspection CssInvalidImport */
 @import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
+
+body {
+    margin: 0;
+}
