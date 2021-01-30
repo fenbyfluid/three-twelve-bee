@@ -1,38 +1,50 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Classes, Navbar, Tab, Tabs } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
+import { DeviceConnection } from "./DeviceConnection";
 
-function App() {
+export function App() {
   const [currentPage, setPage] = useState("menu");
+  const [device, setDevice] = useState<DeviceConnection | null>(null);
 
-  const pages: { [key: string]: React.ReactElement } = {
-    menu: <MainMenu onClick={setPage} />,
-  };
+  useEffect(() => {
+    if (device === null) {
+      setPage(prevPage => {
+        if (prevPage === "menu" || prevPage === "designer") {
+          return prevPage;
+        }
 
-  const menuButton = <Button icon="arrow-left" className={Classes.MINIMAL} large={true} onClick={() => setPage("menu")}>
-    Menu
-  </Button>;
+        return "menu";
+      });
+    }
+  }, [device]);
+
+  let page = undefined;
+  switch (currentPage) {
+    case "menu":
+      page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
+  }
 
   return <>
-    <Navbar>
+    {currentPage !== "menu" && <Navbar>
       <div className="container">
         <Navbar.Group align="left">
-          {currentPage !== "menu" && menuButton}
+          <Button icon="chevron-left" className={Classes.MINIMAL} large={true} onClick={() => setPage("menu")}>
+            Menu
+          </Button>
         </Navbar.Group>
         <Navbar.Group align="right">
           <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())}>
-            <Tab id="controls" title="Controls" />
+            <Tab id="controls" title="Controls" disabled={!device} />
             <Tab id="designer" title="Designer" />
-            <Tab id="programs" title="Programs" />
+            <Tab id="programs" title="Programs" disabled={!device} />
           </Tabs>
         </Navbar.Group>
       </div>
-    </Navbar>
+    </Navbar>}
 
     <div className="container">
-      {pages[currentPage]}
+      {page}
     </div>
   </>;
 }
-
-export default App;

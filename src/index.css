@@ -9,6 +9,10 @@
     line-height: 50px;
 }
 
+.bp3-card[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 body {
     margin: 0;
 }
