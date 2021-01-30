@@ -5,6 +5,15 @@
 /* noinspection CssInvalidImport */
 @import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
 
+.bp3-navbar-group .bp3-tab {
+    line-height: 50px;
+}
+
 body {
     margin: 0;
+}
+
+.container {
+    max-width: 768px;
+    margin: 0 auto;
 }

@@ -1,20 +1,38 @@
-import React from "react";
-import { H1 } from "@blueprintjs/core";
-import logo from "./logo.png";
+import React, { useState } from "react";
+import { Button, Classes, Navbar, Tab, Tabs } from "@blueprintjs/core";
+import { MainMenu } from "./MainMenu";
 
 function App() {
-  const styles: React.CSSProperties = {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
+  const [currentPage, setPage] = useState("menu");
+
+  const pages: { [key: string]: React.ReactElement } = {
+    menu: <MainMenu onClick={setPage} />,
   };
 
-  return <div style={styles}>
-    <img src={logo} alt="Three Twelve Bee Logo" width={512} height={256} />
-    <H1>Hi there.</H1>
-  </div>;
+  const menuButton = <Button icon="arrow-left" className={Classes.MINIMAL} large={true} onClick={() => setPage("menu")}>
+    Menu
+  </Button>;
+
+  return <>
+    <Navbar>
+      <div className="container">
+        <Navbar.Group align="left">
+          {currentPage !== "menu" && menuButton}
+        </Navbar.Group>
+        <Navbar.Group align="right">
+          <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())}>
+            <Tab id="controls" title="Controls" />
+            <Tab id="designer" title="Designer" />
+            <Tab id="programs" title="Programs" />
+          </Tabs>
+        </Navbar.Group>
+      </div>
+    </Navbar>
+
+    <div className="container">
+      {pages[currentPage]}
+    </div>
+  </>;
 }
 
 export default App;
