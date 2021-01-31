@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Callout, Icon } from "@blueprintjs/core";
 import { DeviceConnection } from "./DeviceConnection";
 
@@ -16,17 +16,42 @@ declare global {
 }
 
 export function ConnectionBar(props: ConnectionBarProps) {
+  const [connecting, setConnecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (connecting) {
+      setErrorMessage(null);
+    }
+  }, [connecting]);
+
+  useEffect(() => {
+    if (props.device || errorMessage) {
+      setConnecting(false);
+    }
+  }, [props.device, errorMessage]);
+
   const style: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 50,
   };
+
+  if (connecting) {
+    return <Callout intent="primary" icon={null} style={style}>
+      <span>
+        <Icon icon="feed" intent="primary" style={{ marginRight: 8 }} />
+        Connecting...
+      </span>
+    </Callout>;
+  }
 
   if (!navigator.serial) {
     return <Callout intent="danger" icon={null} style={style}>
       <span>
         <Icon icon="error" intent="danger" style={{ marginRight: 8 }} />
-        Your browser does not support the Web Serial API
+        Your browser does not support the Web Serial API.
       </span>
       <Button intent="danger" outlined={true} onClick={() => window.open("https://web.dev/serial/", "_blank", "noopener")}>
         More Info
@@ -35,23 +60,47 @@ export function ConnectionBar(props: ConnectionBarProps) {
   }
 
   if (props.device) {
+    const disconnect = async function disconnect() {
+      const device = props.device;
+
+      if (device) {
+        await device.close();
+      }
+
+      props.setDevice((prevConnection) => {
+        return prevConnection === device ? null : prevConnection;
+      });
+    };
+
     return <Callout intent="success" icon={null} style={style}>
       <span>
         <Icon icon="tick-circle" intent="success" style={{ marginRight: 8 }} />
         Device connected!
       </span>
-      <Button intent="success" outlined={true} onClick={() => props.device && props.device.close()}>
+      <Button intent="success" outlined={true} onClick={disconnect}>
         Disconnect
       </Button>
     </Callout>;
   }
 
-  async function connect() {
+  const connect = async function connect() {
+    setConnecting(true);
+
     let port = null;
     try {
       port = await navigator.serial.requestPort();
     } catch (ex) {
-      console.error(ex);
+      if (ex.name === "SecurityError") {
+        setErrorMessage("Serial port API access is not allowed.");
+        return;
+      }
+
+      if (ex.name === "AbortError" || ex.name === "NotFoundError") {
+        setErrorMessage("No serial port was selected.");
+        return;
+      }
+
+      setErrorMessage(ex.message);
       return;
     }
 
@@ -63,15 +112,30 @@ export function ConnectionBar(props: ConnectionBarProps) {
       });
     });
 
-    await connection.open();
+    try {
+      await connection.open();
+    } catch (ex) {
+      setErrorMessage(ex.message);
+      return;
+    }
 
     props.setDevice(connection);
+  };
+
+  if (errorMessage) {
+    return <Callout intent="danger" icon={null} style={style}>
+      <span>
+        <Icon icon="error" intent="danger" style={{ marginRight: 8 }} />
+        {errorMessage}
+      </span>
+      <Button intent="danger" outlined={true} onClick={connect}>Try Again</Button>
+    </Callout>;
   }
 
   return <Callout intent="primary" icon={null} style={style}>
     <span>
       <Icon icon="info-sign" intent="primary" style={{ marginRight: 8 }} />
-      Connect to a ET312-based device over serial for full functionality
+      Connect to a ET312-based device over serial for full functionality.
     </span>
     <Button intent="primary" outlined={true} onClick={connect}>Connect</Button>
   </Callout>;

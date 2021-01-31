@@ -36,11 +36,15 @@ export class DeviceConnection extends EventTarget {
       baudRate: 19200,
     });
 
-    await this.flush();
-    await this.sync();
-    this.deviceKey = await this.setupKeys();
+    try {
+      await this.flush();
+      await this.sync();
+      this.deviceKey = await this.setupKeys();
+    } catch (ex) {
+      await this.close();
 
-    this.dispatchEvent(new Event("open"));
+      throw ex;
+    }
   }
 
   async close(): Promise<void> {
@@ -60,8 +64,6 @@ export class DeviceConnection extends EventTarget {
     }
 
     await this.port.close();
-
-    this.dispatchEvent(new Event("close"));
   }
 
   async peek(address: number): Promise<number> {
@@ -69,7 +71,7 @@ export class DeviceConnection extends EventTarget {
 
     const response = await this.read(3, true);
     if (response[0] !== 0x22) {
-      throw new Error("wrong response code");
+      throw new Error("Wrong response received from read message.");
     }
 
     return response[1];
@@ -85,25 +87,25 @@ export class DeviceConnection extends EventTarget {
     const response = await this.read(1, false);
 
     if (response[0] === 0x07) {
-      throw new Error("write rejected, check key setup");
+      throw new Error("Write rejected, check key setup.");
     }
 
     if (response[0] !== 0x06) {
-      throw new Error("wrong response code");
+      throw new Error("Wrong response received from write message.");
     }
   }
 
-  async setupKeys(): Promise<number> {
+  private async setupKeys(): Promise<number> {
     await this.write([0x2F, 0x00], true);
 
     const response = await this.read(3, true, 1000);
 
     if (response === null) {
-      throw new Error("timeout during key setup, already set?");
+      throw new Error("Timeout during key setup, reboot device.");
     }
 
     if (response[0] !== 0x21) {
-      throw new Error("wrong response code");
+      throw new Error("Wrong response received from key setup message.");
     }
 
     return response[1];
@@ -128,7 +130,7 @@ export class DeviceConnection extends EventTarget {
 
     if (!this.readBuffer || this.readBuffer.byteLength < length) {
       if (timeout < 0) {
-        throw new Error("buffer failed");
+        throw new Error("Failed to buffer response data.");
       }
 
       return null;
@@ -153,7 +155,7 @@ export class DeviceConnection extends EventTarget {
       }
 
       if (bytes[bytes.length - 1] !== sum) {
-        throw new Error("read checksum failure");
+        throw new Error("Response checksum was incorrect.");
       }
     }
 
@@ -193,7 +195,7 @@ export class DeviceConnection extends EventTarget {
       const { value, done } = await pendingRead;
 
       if (done || !value) {
-        throw new Error("reader was closed");
+        throw new Error("Device disconnected.");
       }
 
       if (value.byteLength === 0) {
@@ -262,12 +264,12 @@ export class DeviceConnection extends EventTarget {
       }
 
       if (response[0] !== 0x07) {
-        throw new Error("bad sync response: " + response[0].toString(16));
+        throw new Error("Wrong response received during synchronisation.");
       }
 
       return;
     }
 
-    throw new Error("failed to sync");
+    throw new Error("Synchronisation failed, check device connection.");
   }
 }
