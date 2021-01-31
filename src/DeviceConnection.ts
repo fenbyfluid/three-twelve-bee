@@ -39,6 +39,7 @@ export class DeviceConnection extends EventTarget {
     try {
       await this.flush();
       await this.sync();
+
       this.deviceKey = await this.setupKeys();
     } catch (ex) {
       await this.close();
@@ -146,7 +147,7 @@ export class DeviceConnection extends EventTarget {
       this.readBuffer = this.readBuffer.subarray(length);
     }
 
-    console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    // console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
 
     if (checksum) {
       let sum = 0;
@@ -249,7 +250,7 @@ export class DeviceConnection extends EventTarget {
       }
     }
 
-    console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    // console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
 
     await this.writer.write(buffer);
   }

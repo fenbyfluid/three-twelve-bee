@@ -1,0 +1,16 @@
+table.bp3-html-table.memory-table {
+    width: 100%;
+}
+
+table.bp3-html-table.memory-table th, table.bp3-html-table.memory-table td {
+    text-align: right;
+    padding: 6px;
+}
+
+table.bp3-html-table.memory-table tr > *:last-child {
+    padding-right: 24px;
+}
+
+table.bp3-html-table.memory-table tr > *:nth-child(8n+2) {
+    padding-left: 24px;
+}

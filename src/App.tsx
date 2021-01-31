@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button, Classes, Navbar, Tab, Tabs } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
+import { MemoryView } from "./MemoryView";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -23,6 +24,10 @@ export function App() {
   switch (currentPage) {
     case "menu":
       page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
+      break;
+    case "memory":
+      page = device && <MemoryView device={device} />;
+      break;
   }
 
   return <>
