@@ -22,16 +22,18 @@ export class DeviceConnection extends EventTarget {
 
     this.port = port;
 
-    // TODO: For debugging.
-    // @ts-ignore
-    window.connection = this;
-  }
-
-  async open(): Promise<void> {
     this.port.addEventListener("disconnect", () => {
       this.dispatchEvent(new Event("close"));
     });
 
+    // TODO: For debugging.
+    if (process.env.NODE_ENV === "development") {
+      // @ts-ignore
+      window.connection = this;
+    }
+  }
+
+  async open(): Promise<void> {
     await this.port.open({
       baudRate: 19200,
     });
@@ -102,6 +104,17 @@ export class DeviceConnection extends EventTarget {
     const response = await this.read(3, true, 1000);
 
     if (response === null) {
+      // Set the key to explicitly 0x00 and try again.
+      // The MK312 patched firmware has a fixed XOR key, and this lets us reconnect without rebooting.
+      if (this.deviceKey === null) {
+        this.deviceKey = 0x00;
+
+        await this.flush();
+        await this.sync();
+
+        return this.setupKeys();
+      }
+
       throw new Error("Timeout during key setup, reboot device.");
     }
 
@@ -147,7 +160,9 @@ export class DeviceConnection extends EventTarget {
       this.readBuffer = this.readBuffer.subarray(length);
     }
 
-    // console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    if (process.env.NODE_ENV === "development") {
+      console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    }
 
     if (checksum) {
       let sum = 0;
@@ -250,7 +265,9 @@ export class DeviceConnection extends EventTarget {
       }
     }
 
-    // console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    if (process.env.NODE_ENV === "development") {
+      console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    }
 
     await this.writer.write(buffer);
   }
