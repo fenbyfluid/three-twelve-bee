@@ -3,6 +3,7 @@ import { Button, Classes, Navbar, Tab, Tabs } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
+import { FirmwareUpdate } from "./FirmwareUpdate";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -25,6 +26,9 @@ export function App() {
     case "menu":
       page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
       break;
+    case "firmware":
+      page = <FirmwareUpdate />;
+      break;
     case "memory":
       page = device && <MemoryView device={device} />;
       break;
@@ -38,13 +42,13 @@ export function App() {
             Menu
           </Button>
         </Navbar.Group>
-        <Navbar.Group align="right">
+        {device && <Navbar.Group align="right">
           <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())}>
-            <Tab id="controls" title="Controls" disabled={!device} />
+            <Tab id="controls" title="Controls" />
             <Tab id="designer" title="Designer" />
-            <Tab id="programs" title="Programs" disabled={!device} />
+            <Tab id="programs" title="Programs" />
           </Tabs>
-        </Navbar.Group>
+        </Navbar.Group>}
       </div>
     </Navbar>}
 

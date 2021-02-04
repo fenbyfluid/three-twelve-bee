@@ -72,7 +72,7 @@ export function MainMenu(props: MainMenuProps) {
       <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("programs")}>
         Manage User Programs
       </MenuCard>
-      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("firmware")}>
+      <MenuCard disabled={props.device !== null} onClick={() => props.onClick && props.onClick("firmware")}>
         Firmware Update
       </MenuCard>
       <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("memory")}>
