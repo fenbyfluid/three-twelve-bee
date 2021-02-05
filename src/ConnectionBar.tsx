@@ -124,19 +124,15 @@ export function ConnectionBar(props: ConnectionBarProps) {
 
   if (errorMessage) {
     return <Callout intent="danger" icon={null} style={style}>
-      <span>
-        <Icon icon="error" intent="danger" style={{ marginRight: 8 }} />
-        {errorMessage}
-      </span>
+      <Icon icon="error" intent="danger" style={{ marginRight: 8 }} />
+      <span style={{ flex: 1 }}>{errorMessage}</span>
       <Button intent="danger" outlined={true} onClick={connect}>Try Again</Button>
     </Callout>;
   }
 
   return <Callout intent="primary" icon={null} style={style}>
-    <span>
-      <Icon icon="info-sign" intent="primary" style={{ marginRight: 8 }} />
-      Connect to a ET312-based device over serial for full functionality.
-    </span>
+    <Icon icon="info-sign" intent="primary" style={{ marginRight: 8 }} />
+    <span style={{ flex: 1 }}>Connect to a ET312-based device over serial for full functionality.</span>
     <Button intent="primary" outlined={true} onClick={connect}>Connect</Button>
   </Callout>;
 }

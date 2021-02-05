@@ -30,7 +30,7 @@ export function FirmwareUpdate() {
 
       device = new DeviceConnection(port);
 
-      await device.open(true);
+      await device.open({ raw: true });
 
       const newImage = file.image.clone();
 

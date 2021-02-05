@@ -33,12 +33,12 @@ export class DeviceConnection extends EventTarget {
     }
   }
 
-  async open(raw?: boolean): Promise<void> {
+  async open(options?: { raw?: boolean }): Promise<void> {
     await this.port.open({
       baudRate: 19200,
     });
 
-    if (raw) {
+    if (options && options.raw) {
       return;
     }
 
