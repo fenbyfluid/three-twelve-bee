@@ -17,6 +17,10 @@ body {
     margin: 0;
 }
 
+body.bp3-dark {
+    background-color: #394b59;
+}
+
 .container {
     max-width: 768px;
     margin: 0 auto;

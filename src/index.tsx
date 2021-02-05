@@ -2,7 +2,17 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import { App } from "./App";
-import { FocusStyleManager } from "@blueprintjs/core";
+import { Classes, FocusStyleManager } from "@blueprintjs/core";
+
+const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+if (prefersDarkScheme.matches) {
+    document.body.classList.add(Classes.DARK);
+}
+
+prefersDarkScheme.addEventListener("change", ev => {
+    document.body.classList.toggle(Classes.DARK, ev.matches);
+});
 
 FocusStyleManager.onlyShowFocusOnTabs();
 

@@ -46,6 +46,11 @@ interface MainMenuProps {
 export function MainMenu(props: MainMenuProps) {
   const logoWidth = 256;
 
+  const logoStyle: React.CSSProperties = {
+    margin: "2em",
+    filter: "drop-shadow(0px 0px 15px white)",
+  };
+
   const listStyle: React.CSSProperties = {
     margin: "20px 0",
     width: "100%",
@@ -56,7 +61,7 @@ export function MainMenu(props: MainMenuProps) {
   };
 
   return <div style={{ textAlign: "center" }}>
-    <img src={logo} alt="Three Twelve Bee Logo" width={logoWidth} height={logoWidth / 2} style={{ margin: "2em" }} />
+    <img src={logo} alt="Three Twelve Bee Logo" width={logoWidth} height={logoWidth / 2} style={logoStyle} />
     <div style={{ padding: "0 10px", textAlign: "initial" }}>
       <ConnectionBar device={props.device} setDevice={props.setDevice} />
     </div>
