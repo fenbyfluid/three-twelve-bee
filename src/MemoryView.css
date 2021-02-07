@@ -1,5 +1,10 @@
+.memoryViewTabs {
+    margin: 20px 0;
+}
+
 table.bp3-html-table.memory-table {
     width: 100%;
+    table-layout: fixed;
 }
 
 table.bp3-html-table.memory-table th, table.bp3-html-table.memory-table td {
@@ -7,10 +12,34 @@ table.bp3-html-table.memory-table th, table.bp3-html-table.memory-table td {
     padding: 6px;
 }
 
-table.bp3-html-table.memory-table tr > *:last-child {
-    padding-right: 24px;
+table.bp3-html-table.memory-table tr > :nth-child(9n+2) {
+    width: 10px;
 }
 
-table.bp3-html-table.memory-table tr > *:nth-child(8n+2) {
-    padding-left: 24px;
+table.bp3-html-table.variable-table {
+    width: 100%;
+}
+
+table.bp3-html-table.variable-table th, table.bp3-html-table.variable-table td:not(:last-child) {
+    white-space: nowrap;
+}
+
+table.bp3-html-table.variable-table td:last-child {
+    width: 99%;
+}
+
+table.bp3-html-table.flag-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+table.bp3-html-table.flag-table tbody tr:first-child th, table.bp3-html-table.flag-table tbody tr:first-child td {
+    box-shadow: none;
+}
+
+table.bp3-html-table.flag-table tr > td:not(:nth-child(1n+9)) {
+    width: 1em;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
 }
