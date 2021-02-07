@@ -4,6 +4,7 @@ import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
 import { FirmwareUpdate } from "./FirmwareUpdate";
+import { InteractiveControls } from "./InteractiveControls";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -26,6 +27,9 @@ export function App() {
     case "menu":
       page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
       break;
+    case "controls":
+      page = device && <InteractiveControls device={device} />;
+      break;
     case "firmware":
       page = <FirmwareUpdate />;
       break;
@@ -43,7 +47,7 @@ export function App() {
           </Button>
         </Navbar.Group>
         {device && <Navbar.Group align="right">
-          <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())}>
+          <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())} renderActiveTabPanelOnly={true}>
             <Tab id="controls" title="Controls" />
             <Tab id="designer" title="Designer" />
             <Tab id="programs" title="Programs" />

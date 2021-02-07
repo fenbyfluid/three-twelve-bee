@@ -1,0 +1,56 @@
+.channel-control-group {
+    margin-top: 20px;
+}
+
+.channel-control-group-label {
+    margin: -29px -10px 13px -10px;
+    padding: 0 10px;
+    background-color: white;
+    width: fit-content;
+}
+
+.bp3-dark .channel-control-group-label {
+    background-color: #394b59;
+}
+
+.channel-control {
+    display: flex;
+    align-items: center;
+}
+
+.channel-control + .channel-control {
+    margin-top: 10px;
+}
+
+.channel-control > :nth-child(1) {
+    flex: 0 0 30px;
+}
+
+.channel-control > :nth-child(2) {
+    margin: 0 15px;
+    flex: 1;
+}
+
+.channel-control > :nth-child(3) {
+    flex: 0 0 55px;
+}
+
+.channel-control > :nth-child(4) {
+    flex: 0 0 65px;
+}
+
+.channel-control .bp3-control {
+    margin-bottom: 0;
+}
+
+.channel-control .bp3-control:not(.bp3-align-right) {
+    padding-left: 20px;
+}
+
+.channel-control .bp3-control .bp3-control-indicator {
+    margin-right: 4px;
+}
+
+.channel-control .bp3-control:not(.bp3-align-right) .bp3-control-indicator {
+    margin-left: -20px;
+}
