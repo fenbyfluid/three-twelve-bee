@@ -7,12 +7,12 @@ table.bp3-html-table.memory-table {
     table-layout: fixed;
 }
 
-table.bp3-html-table.memory-table th, table.bp3-html-table.memory-table td {
+table.bp3-html-table.memory-table > * > tr > th, table.bp3-html-table.memory-table > * > tr > td {
     text-align: right;
     padding: 6px;
 }
 
-table.bp3-html-table.memory-table tr > :nth-child(9n+2) {
+table.bp3-html-table.memory-table > * > tr > :nth-child(9n+2) {
     width: 10px;
 }
 
@@ -20,26 +20,10 @@ table.bp3-html-table.variable-table {
     width: 100%;
 }
 
-table.bp3-html-table.variable-table th, table.bp3-html-table.variable-table td:not(:last-child) {
+table.bp3-html-table.variable-table > * > tr > th, table.bp3-html-table.variable-table > * > tr > td:not(:last-child) {
     white-space: nowrap;
 }
 
-table.bp3-html-table.variable-table td:last-child {
+table.bp3-html-table.variable-table > * > tr > td:last-child {
     width: 99%;
-}
-
-table.bp3-html-table.flag-table {
-    width: 100%;
-    table-layout: fixed;
-}
-
-table.bp3-html-table.flag-table tbody tr:first-child th, table.bp3-html-table.flag-table tbody tr:first-child td {
-    box-shadow: none;
-}
-
-table.bp3-html-table.flag-table tr > td:not(:nth-child(1n+9)) {
-    width: 1em;
-    padding-left: 0;
-    padding-right: 0;
-    text-align: center;
 }

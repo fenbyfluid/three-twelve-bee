@@ -5,6 +5,16 @@ declare global {
   }
 }
 
+// TODO: We could do with having a higher-level concept of reader and writer commands,
+//       which we could then allow reader commands to queue indefinitely, but always wait on
+//       writer commands (and wait for all the reader commands to be done before writing).
+//       Built on top of that mechanism we could then start having higher-level retry behaviour
+//       on reading (such as automatically flushing and re-queuing after a checksum failure),
+//       while having safer and slower writing not compromise the reading performance.
+
+// TODO: We may want to split out the raw interface to a lower-level class, then have dedicated
+//       connection classes for normal mode and firmware update mode.
+
 /**
  * https://metafetish.gitbooks.io/stpihkal/content/hardware/erostek-et312b.html
  */
