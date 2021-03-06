@@ -1,7 +1,7 @@
 import { Button, Classes, H3, HTMLTable, Switch, Tab, Tabs } from "@blueprintjs/core";
 import React, { HTMLAttributes, useEffect, useRef, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
-import { RAM_VARIABLES, REGISTER_VARIABLES, VariableInfo } from "./MemoryVariables";
+import { EEPROM_VARIABLES, RAM_VARIABLES, REGISTER_VARIABLES, VariableInfo } from "./MemoryVariables";
 import "./MemoryView.css";
 
 const VariableDescription = React.memo(function VariableDescription(props: { skeleton?: boolean, text: string }) {
@@ -349,6 +349,8 @@ export function MemoryView(props: MemoryViewProps) {
       break;
     case "eeprom":
       tabContent = <DeviceMemoryDump key="eeprom" device={props.device} base={0x8000} length={512} label="EEPROM"
+                                     variables={showVariableView && EEPROM_VARIABLES}
+                                     setShowVariableView={setShowVariableView}
                                      autoRefresh={autoRefresh} setAutoRefresh={setAutoRefresh} />;
       break;
   }

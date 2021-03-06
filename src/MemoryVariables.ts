@@ -330,6 +330,12 @@ const ACTION_AT_MIN_MAX: { [key: number]: string } = {
   0xFF: "Reverse",
 };
 
+const POWER_LEVELS = {
+  1: "Low",
+  2: "Normal",
+  3: "High",
+};
+
 export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x4060, description: "ADC0: Output Current Sense" },
   { address: 0x4061, description: "ADC1: Multi Adjust Offset" },
@@ -504,7 +510,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x41F1, description: "Pointer (counter) for serial output buffer" },
   { address: 0x41F2, description: "Pointer (counter) for serial input buffer" },
   { address: 0x41F3, description: "Current Top Mode (written during routine write)", values: MODES },
-  { address: 0x41F4, description: "Power Level", values: { 1: "Low", 2: "Normal", 3: "High" } },
+  { address: 0x41F4, description: "Power Level", values: POWER_LEVELS },
   { address: 0x41F5, description: "Split Mode Number A", values: MODES },
   { address: 0x41F6, description: "Split Mode Number B", values: MODES },
   { address: 0x41F7, description: "Favourite Mode", values: MODES },
@@ -549,4 +555,41 @@ export const RAM_VARIABLES: VariableInfo[] = [
   // 0x4220 - 0x422B Serial comms input buffer
   // 0x422C - 0x4237 Serial comms input buffer
   // 0x4238 - 0x43FF Unused
+];
+
+export const EEPROM_VARIABLES: VariableInfo[] = [
+  // { address: 0x8000, description: "Unused" },
+  { address: 0x8001, description: "Magic", values: { 0x55: "Provisioned", 0xFF: "Blank" } },
+  { address: 0x8002, description: "Box Serial 1" },
+  { address: 0x8003, description: "Box Serial 2" },
+  // { address: 0x8004, description: "Unused" },
+  // { address: 0x8005, description: "Unused" },
+  { address: 0x8006, description: "ELinkSig1" },
+  { address: 0x8007, description: "ELinkSig2" },
+  { address: 0x8008, description: "Top Mode (written during routine write)", values: MODES },
+  { address: 0x8009, description: "Power Level", values: POWER_LEVELS },
+  { address: 0x800A, description: "Split Mode Number A", values: MODES },
+  { address: 0x800B, description: "Split Mode Number B", values: MODES },
+  { address: 0x800C, description: "Favourite Mode", values: MODES },
+  { address: 0x800D, description: "Advanced Parameter: RampLevel" },
+  { address: 0x800E, description: "Advanced Parameter: RampTime" },
+  { address: 0x800F, description: "Advanced Parameter: Depth" },
+  { address: 0x8010, description: "Advanced Parameter: Tempo" },
+  { address: 0x8011, description: "Advanced Parameter: Frequency" },
+  { address: 0x8012, description: "Advanced Parameter: Effect" },
+  { address: 0x8013, description: "Advanced Parameter: Width" },
+  { address: 0x8014, description: "Advanced Parameter: Pace" },
+  // 0x8015 - 0x8017 Unused
+  { address: 0x8018, description: "Start Vector User 1" },
+  { address: 0x8019, description: "Start Vector User 2" },
+  { address: 0x801A, description: "Start Vector User 3" },
+  { address: 0x801B, description: "Start Vector User 4" },
+  { address: 0x801C, description: "Start Vector User 5" },
+  { address: 0x801D, description: "Start Vector User 6" },
+  { address: 0x801E, description: "Start Vector User 7 (Not Implemented)" },
+  { address: 0x801F, description: "Start Vector User 8 (Not Implemented)" },
+  // 0x8020 - 0x803F User routine module pointers 0x80-0x9F
+  // 0x8040 - 0x80FF Space for User Modules
+  // 0x8100 - 0x811F User routine module pointers 0xA0-0xBF
+  // 0x8120 - 0x81FF Space for User Modules
 ];
