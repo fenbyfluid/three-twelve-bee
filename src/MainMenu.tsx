@@ -18,7 +18,7 @@ function MenuCard(props: MenuCardProps) {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    flexGrow: 1,
+    flex: 1,
   };
 
   const classes = [

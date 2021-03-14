@@ -37,6 +37,8 @@ export class FirmwareImage {
   }
 
   getSplashMessage(): string | null {
+    this.decrypt();
+
     const view = this.getSplashMessageView();
 
     // Check for only ASCII printable characters.
@@ -88,6 +90,41 @@ export class FirmwareImage {
     }
 
     return true;
+  }
+
+  public getChannelInitializationData(): Uint8Array {
+    this.decrypt();
+
+    // Slice instead of subarray as we don't want the caller modifying it.
+    return this.file.slice(0x1F9C, 0x1F9C + 0x3F);
+  }
+
+  public getBuiltInModuleOffset(idx: number): number | null {
+    this.decrypt();
+
+    // The actual limit is lower than this, as the full range isn't implemented in the firmware.
+    if (idx < 0x00 || idx > 0x7F) {
+      throw new Error("module index out of range");
+    }
+
+    const start = this.file[0x1C3E + idx];
+
+    // If iterating over the modules, this indicates when the end of the list has been reached.
+    if (start === 0xFF) {
+      return null;
+    }
+
+    return 0x2000 + (start * 2);
+  }
+
+  public* iterBytes(offset: number): Generator<number, void> {
+    this.decrypt();
+
+    let cursor = 0;
+    while ((offset + cursor) < this.file.length) {
+      yield this.file[offset + cursor];
+      cursor++;
+    }
   }
 
   private stripBootloader(): void {

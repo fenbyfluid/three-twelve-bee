@@ -5,6 +5,7 @@ import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
 import { FirmwareUpdate } from "./FirmwareUpdate";
 import { InteractiveControls } from "./InteractiveControls";
+import { ProgramManager } from "./ProgramManager";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -29,6 +30,9 @@ export function App() {
       break;
     case "controls":
       page = device && <InteractiveControls device={device} />;
+      break;
+    case "programs":
+      page = device && <ProgramManager device={device} />;
       break;
     case "firmware":
       page = <FirmwareUpdate />;

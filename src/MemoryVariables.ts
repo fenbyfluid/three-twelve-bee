@@ -287,8 +287,8 @@ const MODULES: { [key: number]: string } = {
   // 6?
   // 7?
   8: "Climb B",
-  // 9?
-  // 10?
+  // 9? "b variant of 6"
+  // 10? "b variant of 7"
   11: "Waves A",
   12: "Waves B",
   13: "Combo A",
@@ -316,12 +316,16 @@ const MODULES: { [key: number]: string } = {
   35: "Phase (3)",
 
   // 128+ User Modules
-  ...Array.from({ length: 128 - 4 }, (_, i) => `User ${i + 1}`)
+  ...Array.from({ length: 64 }, (_, i) => `User ${i + 1}`)
     .reduce((o, name, i) => ({ ...o, [128 + i]: name }), {}),
+
+  // 192+ Scratchpad Modules
+  ...Array.from({ length: 32 }, (_, i) => `Scratchpad ${i + 1}`)
+    .reduce((o, name, i) => ({ ...o, [192 + i]: name }), {}),
 }
 
 const ACTION_AT_MIN_MAX: { [key: number]: string } = {
-  ...Array.from({ length: 256 - 4 }, (_, i) => MODULES[i] || `Unknown ${i}`)
+  ...Array.from({ length: 224 }, (_, i) => MODULES[i] || `Unknown ${i}`)
     .reduce((o, name, i) => ({ ...o, [i]: `Switch to Module: ${name}` }), {}),
 
   0xFC: "Stop",
@@ -398,7 +402,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x4089, description: "Module timer (3 bytes) mid - 0.953Hz (1.048S)" },
   { address: 0x408A, description: "Module timer (3 bytes) high - (268.43S)" },
   { address: 0x408B, description: "Module timer (slower) - 30.5Hz" },
-  { address: 0x408C, description: "Module temporary byte store" },
+  { address: 0x408C, description: "Channel A: Module temporary byte store" },
   { address: 0x408D, description: "Random Number Min" },
   { address: 0x408E, description: "Random Number Max" },
   { address: 0x408F, description: "Module to load if audio triggered", values: MODULES },
@@ -450,14 +454,16 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x40BD, description: "Channel A: Current Width Modulation Action Max", values: ACTION_AT_MIN_MAX },
   { address: 0x40BE, description: "Channel A: Current Width Modulation Select" },
   { address: 0x40BF, description: "Channel A: Current Width Modulation Timer" },
-  // 0x40C0 - 0x4177 Space for User Module Scratchpad A
-  // 0x4178 - 0x417F Unused
+  // 0x40C0 - 0x417F Scratchpad module data
   { address: 0x4180, description: "Write LCD Parameter" },
   { address: 0x4181, description: "Write LCD Position" },
   { address: 0x4182, description: "Parameter `r26` for box command" },
   { address: 0x4183, description: "Parameter `r27` for box command" },
   { address: 0x4184, description: "Set to random number during Random 1 Program" },
-  // 0x4185 - 0x418F Unused
+  // 0x4185 - 0x4187 Unused
+  // 0x4188 - 0x418B Unused - bytes above here are initialized at routine start
+  { address: 0x418C, description: "Channel B: Module temporary byte store" },
+  // 0x418D - 0x418F Unused
   { address: 0x4190, description: "Channel B: Current Gate Value (0 when no output)" },
   // 0x4191 - 0x4193 Unused
   { address: 0x4194, description: "Channel B: Next module timer current" },
@@ -505,7 +511,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x41BE, description: "Channel B: Current Width Modulation Select" },
   { address: 0x41BF, description: "Channel B: Current Width Modulation Timer" },
   // 0x41C0 - 0x41CF Last 16 MA knob readings used for averaging
-  // 0x41D0 - 0x41EF Unused
+  // 0x41D0 - 0x41EF Scratchpad module pointers 0xC0 - 0xDF
   { address: 0x41F0, description: "Pointer (counter) for MA knob averaging" },
   { address: 0x41F1, description: "Pointer (counter) for serial output buffer" },
   { address: 0x41F2, description: "Pointer (counter) for serial input buffer" },
@@ -589,7 +595,9 @@ export const EEPROM_VARIABLES: VariableInfo[] = [
   { address: 0x801E, description: "Start Vector User 7 (Not Implemented)" },
   { address: 0x801F, description: "Start Vector User 8 (Not Implemented)" },
   // 0x8020 - 0x803F User routine module pointers 0x80-0x9F
+  ...Array.from({ length: 32 }, (_, i) => ({ address: 0x8020 + i, description: `Start User Module ${i + 1}` })),
   // 0x8040 - 0x80FF Space for User Modules
   // 0x8100 - 0x811F User routine module pointers 0xA0-0xBF
+  ...Array.from({ length: 32 }, (_, i) => ({ address: 0x8100 + i, description: `Start User Module ${i + 33}` })),
   // 0x8120 - 0x81FF Space for User Modules
 ];

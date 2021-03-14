@@ -96,6 +96,16 @@ export class DeviceConnection extends EventTarget {
     return response[1];
   }
 
+  async* iterBytes(offset: number): AsyncGenerator<number, void> {
+    let cursor = 0;
+    while ((offset + cursor) <= 0xFFFF) {
+      yield this.peek(offset + cursor);
+      cursor++;
+    }
+
+    throw new Error("iter address out of range");
+  }
+
   async poke(address: number, data: number | number[]): Promise<void> {
     if (!Array.isArray(data)) {
       data = [data];
