@@ -84,5 +84,10 @@ export function MainMenu(props: MainMenuProps) {
         Memory View
       </MenuCard>
     </div>
+    {(process.env.NODE_ENV === "development") && <div style={{ ...listStyle, height: 75 }}>
+      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("tester")}>
+        Instruction Tester
+      </MenuCard>
+    </div>}
   </div>;
 }

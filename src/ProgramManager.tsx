@@ -47,8 +47,8 @@ async function LoadUserMode(device: DeviceConnection, userModeIdx: number): Prom
 
 export function ProgramManager(props: { device: DeviceConnection }) {
   useEffect(() => {
-    // Use 0x407A (RAM) instead of 0x8008 (EEPROM) to include scratchpad routine.
-    props.device.peek(0x407A).then(topMode => {
+    // Use 0x41F3 (RAM) instead of 0x8008 (EEPROM) to include scratchpad routine.
+    props.device.peek(0x41F3).then(topMode => {
       // TODO: Use a constant for "Phase 3" mode here.
       const userModeCount = topMode - 135;
       for (let i = 0; i < userModeCount; ++i) {

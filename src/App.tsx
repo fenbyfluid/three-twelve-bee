@@ -6,6 +6,7 @@ import { MemoryView } from "./MemoryView";
 import { FirmwareUpdate } from "./FirmwareUpdate";
 import { InteractiveControls } from "./InteractiveControls";
 import { ProgramManager } from "./ProgramManager";
+import { InstructionTester } from "./InstructionTester";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -39,6 +40,9 @@ export function App() {
       break;
     case "memory":
       page = device && <MemoryView device={device} />;
+      break;
+    case "tester":
+      page = device && <InstructionTester device={device} />;
       break;
   }
 

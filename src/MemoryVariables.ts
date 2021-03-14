@@ -460,7 +460,8 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x4182, description: "Parameter `r26` for box command" },
   { address: 0x4183, description: "Parameter `r27` for box command" },
   { address: 0x4184, description: "Set to random number during Random 1 Program" },
-  // 0x4185 - 0x4187 Unused
+  { address: 0x4185, description: "Need to show select mode message" },
+  // 0x4186 - 0x4187 Unused
   // 0x4188 - 0x418B Unused - bytes above here are initialized at routine start
   { address: 0x418C, description: "Channel B: Module temporary byte store" },
   // 0x418D - 0x418F Unused
