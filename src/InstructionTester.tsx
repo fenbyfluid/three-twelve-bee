@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
 import { Button, Callout, Collapse, H3 } from "@blueprintjs/core";
 import { encodeInstruction, Instruction } from "./Module";
@@ -116,13 +116,17 @@ async function testInstructions(device: DeviceConnection, modules: Instruction[]
 
 type TestSuiteTest = { name: string, instructions: Instruction[][], tests: InstructionTest[] };
 
-async function runTestSuite(device: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[]) {
+async function runTestSuite(device: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[], cancelHolder?: { cancelled: boolean }) {
   setSuiteResults(new Array(suite.length));
 
   for (let i = 0; i < suite.length; ++i) {
     const results = await testInstructions(device, suite[i].instructions, suite[i].tests);
 
     console.log(suite[i].name, suite[i].instructions, results);
+
+    if (cancelHolder && cancelHolder.cancelled) {
+      return;
+    }
 
     setSuiteResults(prevState => {
       const newState = prevState.slice();
@@ -304,7 +308,7 @@ export function TestResult(props: { suite: TestSuiteTest, results?: InstructionT
 
   const intent = props.results ? (props.results.passed ? "success" : "danger") : undefined;
   const icon = props.results ? (props.results.passed ? "tick" : "cross") : "time";
-  const details = props.results && props.results.results.map((result, i) => {
+  const details = props.results && props.results.results.map(result => {
     const address = result.address.toString(16).toUpperCase().padStart(4, '0');
     const initial = (result.initial === undefined) ? "??" : result.initial.toString(16).toUpperCase().padStart(2, '0');
     const expected = (result.expected === undefined) ? "??" : result.expected.toString(16).toUpperCase().padStart(2, '0');
@@ -327,6 +331,7 @@ export function TestResult(props: { suite: TestSuiteTest, results?: InstructionT
 }
 
 export function InstructionTester(props: { device: DeviceConnection }) {
+  const [testsRunning, setTestsRunning] = useState(false);
   const [suiteResults, setSuiteResults] = useState(new Array(TEST_SUITE.length) as (InstructionTestTestResult | undefined)[]);
 
   useEffect(() => {
@@ -335,16 +340,37 @@ export function InstructionTester(props: { device: DeviceConnection }) {
     }
   }, [suiteResults.length]);
 
+  const cancelHolder = useMemo(() => ({
+    cancelled: false,
+  }), []);
+
+  useEffect(() => {
+    return () => {
+      cancelHolder.cancelled = true;
+    };
+  }, [cancelHolder]);
+
   const testInfo = TEST_SUITE.map((suite, i) => {
     const results = suiteResults[i];
 
     return <TestResult key={'test-' + i} suite={suite} results={results} />
   });
 
+  const runTests = () => {
+    setTestsRunning(true);
+
+    runTestSuite(props.device, setSuiteResults, TEST_SUITE, cancelHolder)
+      .then(() => {
+        if (!cancelHolder.cancelled) {
+          setTestsRunning(false);
+        }
+      });
+  };
+
   return <div>
     <H3 style={{ margin: 20, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
       Instruction Tester
-      <Button large={true} intent="primary" icon="play" onClick={() => runTestSuite(props.device, setSuiteResults, TEST_SUITE)}>Run Tests</Button>
+      <Button large={true} intent="primary" icon="play" disabled={testsRunning} onClick={runTests}>Run Tests</Button>
     </H3>
     {testInfo}
   </div>;
