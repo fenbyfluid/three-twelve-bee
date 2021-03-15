@@ -22,7 +22,7 @@ function getInstructionLength(opcode: number) {
   // 1110 0000 === 0010 0000
   if ((opcode & 0xE0) === 0x20) {
     // 0001 1100
-    return 1 + (opcode & 0x1C) >>> 2;
+    return 1 + ((opcode & 0x1C) >>> 2);
   }
 
   // Some of the math instructions take a value.

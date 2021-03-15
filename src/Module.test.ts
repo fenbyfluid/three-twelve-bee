@@ -55,15 +55,22 @@ test("parse eroslink module", () => {
   // Channel: Both
   // Multi-A: Affect Freq, Min 0.0, Max 30.0, Unscaled
   const MODULE = [0x85, 0x03, 0x28, 0x86, 0x08, 0x52, 0x54, 0xB5, 0xE3, 0x58, 0xB5, 0x08, 0x00];
-  const PARSED = [
+
+  const parsedModule = Array.from(parseModule(MODULE));
+  expect(parsedModule).toStrictEqual([
+    [ 0x85, 0x03 ],
+    [ 0x28, 0x86, 0x08, 0x52 ],
+    [ 0x54, 0xB5, 0xE3 ],
+    [ 0x58, 0xB5, 0x08 ],
+  ]);
+
+  const decodedModule = parsedModule.map(decodeInstruction);
+  expect(decodedModule).toStrictEqual([
     { operation: 'set', address: 0x85, forceHigh: false, value: 0x03 },
     { operation: 'copy', address: 0x86, values: [ 0x08, 0x52 ] },
     { operation: 'and', address: 0xB5, value: 0xE3 },
     { operation: 'or', address: 0xB5, value: 0x08 },
-  ];
-
-  const parsedModule = Array.from(parseModule(MODULE)).map(decodeInstruction);
-  expect(parsedModule).toStrictEqual(PARSED);
+  ]);
 });
 
 test("simulate instructions", () => {
