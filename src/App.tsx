@@ -7,6 +7,7 @@ import { FirmwareUpdate } from "./FirmwareUpdate";
 import { InteractiveControls } from "./InteractiveControls";
 import { ProgramManager } from "./ProgramManager";
 import { InstructionTester } from "./InstructionTester";
+import { DesignerEditor } from "./DesignerEditor";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -31,6 +32,9 @@ export function App() {
       break;
     case "controls":
       page = device && <InteractiveControls device={device} />;
+      break;
+    case "designer":
+      page = <DesignerEditor />;
       break;
     case "programs":
       page = device && <ProgramManager device={device} />;
