@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { FileInput, FormGroup, H3, HTMLSelect } from "@blueprintjs/core";
-import { DesignerGraph } from "./DesignerGraph";
+import { EroslinkRoutineGraph } from "./EroslinkRoutineGraph";
 import { DesignerFile, Routine } from "eroslink-file";
 
-export function DesignerEditor() {
+export function EroslinkRoutineViewer() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [file, setFile] = useState<{ name: string, context: DesignerFile } | null>(null);
   const [routine, setRoutine] = useState<Routine | null>(null);
@@ -30,6 +30,8 @@ export function DesignerEditor() {
 
         if (context.routines.length === 1) {
           setRoutine(context.routines[0]);
+        } else {
+          setRoutine(null);
         }
       } catch (err) {
         setFileError(err.message);
@@ -45,7 +47,7 @@ export function DesignerEditor() {
 
   return <div style={{ margin: "0 20px" }}>
     <H3 style={{ margin: "20px 0" }}>
-      Editing {routine?.name}
+      {routine ? `Viewing ${routine.name}` : "Select Routine"}
     </H3>
     <FormGroup label="Select File" helperText={fileError} intent={fileError ? "danger" : undefined}>
       <FileInput
@@ -69,7 +71,7 @@ export function DesignerEditor() {
       </HTMLSelect>
     </FormGroup>
     <FormGroup label="Ingredient Graph" disabled={!routine}>
-      <DesignerGraph key={routine?.name} routine={routine} />
+      <EroslinkRoutineGraph key={routine?.name || ""} routine={routine} />
     </FormGroup>
   </div>;
 }

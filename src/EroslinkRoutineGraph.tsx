@@ -12,9 +12,17 @@ import ReactFlow, {
   useZoomPanHelper,
 } from "react-flow-renderer";
 import dagre from "dagre";
-import { RawIngredient, Routine } from "eroslink-file";
+import {
+  ChannelIngredient,
+  Ingredient, RampIngredient,
+  RawIngredient,
+  Routine,
+  SetValueIngredient,
+  TimeGotoIngredient,
+} from "eroslink-file";
+import { Button, Checkbox, Classes } from "@blueprintjs/core";
 
-export function DesignerGraph(props: { routine: Routine | null }) {
+export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
   const [elements, setElements] = useState<Elements>([]);
 
   useEffect(() => {
@@ -24,17 +32,27 @@ export function DesignerGraph(props: { routine: Routine | null }) {
       return;
     }
 
+    const nodeDefaults = {
+      position: { x: 0, y: 0 },
+      style: { width: "initial" },
+      targetPosition: Position.Left,
+      sourcePosition: Position.Right,
+    };
+
+    const edgeDefaults = {
+      arrowHeadType: ArrowHeadType.ArrowClosed,
+    };
+
     const newElements: Elements = [];
     for (const ingredient of props.routine.ingredients) {
       const id = ingredient.instanceName!;
+      const backgroundColor = colorToCssString(ingredient.useDefaultBackgroundColor ? 0xFFFFFFFF : ingredient.backgroundColor);
 
       newElements.push({
         id,
-        data: { label: ingredient.constructor.name },
-        position: { x: 0, y: 0 },
-        style: { width: "initial" },
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
+        data: { label: <IngredientLabel ingredient={ingredient} /> },
+        ...nodeDefaults,
+        style: { backgroundColor, ...nodeDefaults.style },
       });
 
       if (id === "1") {
@@ -42,17 +60,14 @@ export function DesignerGraph(props: { routine: Routine | null }) {
           id: "start",
           type: "input",
           data: { label: "Start" },
-          position: { x: 0, y: 0 },
-          style: { width: "initial" },
-          targetPosition: Position.Left,
-          sourcePosition: Position.Right,
+          ...nodeDefaults,
         });
 
         newElements.push({
           id: `estart-${id}`,
           source: "start",
           target: id,
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          ...edgeDefaults,
         });
       }
 
@@ -63,7 +78,7 @@ export function DesignerGraph(props: { routine: Routine | null }) {
           id: `e${id}-${otherId}`,
           source: id,
           target: otherId,
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          ...edgeDefaults,
         });
       }
 
@@ -75,8 +90,8 @@ export function DesignerGraph(props: { routine: Routine | null }) {
             id: `e${id}-${otherId}`,
             source: id,
             target: otherId,
-            arrowHeadType: ArrowHeadType.ArrowClosed,
             animated: true,
+            ...edgeDefaults,
           });
         }
       }
@@ -90,8 +105,8 @@ export function DesignerGraph(props: { routine: Routine | null }) {
             id: `e${id}-${trigger}`,
             source: id,
             target: trigger,
-            arrowHeadType: ArrowHeadType.ArrowClosed,
             animated: true,
+            ...edgeDefaults,
           });
         }
       }
@@ -123,6 +138,49 @@ export function DesignerGraph(props: { routine: Routine | null }) {
   </div>;
 }
 
+function colorToCssString(color: number): string {
+  const a = (color >>> 24) & 0xFF;
+  const r = (color >>> 16) & 0xFF;
+  const g = (color >>> 8) & 0xFF;
+  const b = color & 0xFF;
+
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function IngredientLabel({ ingredient }: { ingredient: Ingredient }) {
+  let body = null;
+  if (ingredient instanceof ChannelIngredient) {
+    body = <>
+      <div>Channels: {ingredient.channel}</div>
+    </>;
+  } else if (ingredient instanceof SetValueIngredient) {
+    body = <>
+      <div>Value: {ingredient.value}</div>
+      <div><Checkbox readOnly={true} label="Set Intensity" checked={ingredient.setIntensity} /></div>
+      <div><Checkbox readOnly={true} label="Set Frequency" checked={ingredient.setFrequency} /></div>
+      <div><Checkbox readOnly={true} label="Set Pulse Width" checked={ingredient.setPulseWidth} /></div>
+    </>;
+  } else if (ingredient instanceof RampIngredient) {
+    body = <>
+      <div>Value: {ingredient.startPercent} to {ingredient.endPercent}</div>
+      <div>Over: {ingredient.timeSeconds} seconds</div>
+      <div><Checkbox readOnly={true} label="Set Intensity" checked={ingredient.setIntensity} /></div>
+      <div><Checkbox readOnly={true} label="Set Frequency" checked={ingredient.setFrequency} /></div>
+      <div><Checkbox readOnly={true} label="Set Pulse Width" checked={ingredient.setPulseWidth} /></div>
+    </>;
+  } else if (ingredient instanceof TimeGotoIngredient) {
+    body = <>
+      <div>Delay: {ingredient.timeSeconds} seconds</div>
+    </>;
+  }
+
+  return <div>
+    <p>{ingredient.instanceName}</p>
+    <div className={Classes.MONOSPACE_TEXT}>{ingredient.constructor.name}</div>
+    {body && <div style={{ marginTop: 10, textAlign: "left" }}>{body}</div>}
+  </div>
+}
+
 function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, targetY: number) {
   const distanceX = sourceX - targetX;
   const bendiness = Math.log(distanceX) ** 2.5;
@@ -131,7 +189,7 @@ function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, ta
   const sourceYOffset = (sourceY < centerY) ? -1 : 1;
   const targetYOffset = (targetY > centerY) ? -1 : 1;
 
-  return `M${sourceX},${sourceY} C${sourceX + bendiness},${sourceY + (sourceYOffset * bendiness)} ${targetX - bendiness},${targetY + (targetYOffset * bendiness)} ${targetX},${targetY}`;
+  return `M${sourceX},${sourceY} C${sourceX + (1.25 * bendiness)},${sourceY + (sourceYOffset * bendiness)} ${targetX - (1.25 * bendiness)},${targetY + (targetYOffset * bendiness)} ${targetX},${targetY}`;
 }
 
 function CustomConnectionLine(props: ConnectionLineComponentProps) {
@@ -168,9 +226,8 @@ function AutoLayout(props: { elements: Elements, setElements: React.Dispatch<Rea
   const { nodes, edges } = useStoreState(({ nodes, edges }) => ({ nodes, edges }));
 
   useEffect(() => {
-    const needsLayout = props.elements.filter(isNode).some(element => element.position.x === 0);
-
-    if (!needsLayout || nodes.length === 0 || nodes[0].__rf.width <= 0) {
+    const needsLayout = props.elements.some(el => isNode(el) && el.position.x === 0);
+    if (!needsLayout) {
       return;
     }
 
@@ -186,11 +243,23 @@ function AutoLayout(props: { elements: Elements, setElements: React.Dispatch<Rea
 
     graph.setDefaultEdgeLabel(() => ({}));
 
+    const done = new Set();
+
     for (const node of nodes) {
+      if (!node.__rf.width || !node.__rf.height) {
+        continue;
+      }
+
       graph.setNode(node.id, { width: node.__rf.width, height: node.__rf.height });
+
+      done.add(node.id);
     }
 
     for (const edge of edges) {
+      if (!done.has(edge.source) || !done.has(edge.target)) {
+        continue;
+      }
+
       graph.setEdge(edge.source, edge.target);
     }
 
@@ -202,7 +271,7 @@ function AutoLayout(props: { elements: Elements, setElements: React.Dispatch<Rea
       }
 
       const nodeWithPosition = graph.node(el.id);
-      if (!nodeWithPosition || !nodeWithPosition.width || !nodeWithPosition.height) {
+      if (!nodeWithPosition) {
         return el;
       }
 
@@ -219,5 +288,22 @@ function AutoLayout(props: { elements: Elements, setElements: React.Dispatch<Rea
     }, 100);
   }, [zoomPanHelper, nodes, edges, props]);
 
-  return <></>;
+  const resetLayout = () => {
+    props.setElements(elements => elements.map(el => {
+      if (!isNode(el)) {
+        return el;
+      }
+
+      el.position = { x: 0, y: 0 };
+
+      return el;
+    }));
+  };
+
+  return <Button
+    minimal={true}
+    icon="layout-hierarchy"
+    style={{ position: "absolute", top: 5, right: 5, zIndex: 5, transform: "rotate(-90deg)" }}
+    onClick={resetLayout}
+  />;
 }

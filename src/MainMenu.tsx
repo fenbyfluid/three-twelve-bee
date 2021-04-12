@@ -88,6 +88,9 @@ export function MainMenu(props: MainMenuProps) {
       <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("tester")}>
         Instruction Tester
       </MenuCard>
+      <MenuCard onClick={() => props.onClick && props.onClick("viewer")}>
+        ErosLink Viewer
+      </MenuCard>
     </div>}
   </div>;
 }

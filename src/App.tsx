@@ -7,7 +7,7 @@ import { FirmwareUpdate } from "./FirmwareUpdate";
 import { InteractiveControls } from "./InteractiveControls";
 import { ProgramManager } from "./ProgramManager";
 import { InstructionTester } from "./InstructionTester";
-import { DesignerEditor } from "./DesignerEditor";
+import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -34,7 +34,7 @@ export function App() {
       page = device && <InteractiveControls device={device} />;
       break;
     case "designer":
-      page = <DesignerEditor />;
+      page = undefined;
       break;
     case "programs":
       page = device && <ProgramManager device={device} />;
@@ -48,10 +48,13 @@ export function App() {
     case "tester":
       page = device && <InstructionTester device={device} />;
       break;
+    case "viewer":
+      page = <EroslinkRoutineViewer />;
+      break;
   }
 
   return <>
-    {currentPage !== "menu" && <Navbar>
+    {currentPage !== "menu" && <Navbar fixedToTop={true}>
       <div className="container">
         <Navbar.Group align="left">
           <Button icon="chevron-left" className={Classes.MINIMAL} large={true} onClick={() => setPage("menu")}>
@@ -68,7 +71,7 @@ export function App() {
       </div>
     </Navbar>}
 
-    <div className="container">
+    <div className="container" style={{ paddingTop: (currentPage !== "menu") ? 50 : 0 }}>
       {page}
     </div>
   </>;
