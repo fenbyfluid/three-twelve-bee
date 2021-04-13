@@ -8,6 +8,7 @@ import { InteractiveControls } from "./InteractiveControls";
 import { ProgramManager } from "./ProgramManager";
 import { InstructionTester } from "./InstructionTester";
 import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
+import { RoutineEditor } from "./RoutineEditor";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
@@ -34,7 +35,7 @@ export function App() {
       page = device && <InteractiveControls device={device} />;
       break;
     case "designer":
-      page = undefined;
+      page = <RoutineEditor />;
       break;
     case "programs":
       page = device && <ProgramManager device={device} />;
