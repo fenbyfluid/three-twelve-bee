@@ -1,13 +1,5 @@
-import React, { useEffect, useState } from "react";
-import ReactFlow, {
-  ArrowHeadType,
-  ConnectionLineComponentProps,
-  EdgeProps,
-  Elements,
-  getBezierPath,
-  getMarkerEnd,
-  Position,
-} from "react-flow-renderer";
+import React, { useCallback, useEffect, useState } from "react";
+import ReactFlow, { ArrowHeadType, Elements, isNode, Position, XYPosition } from "react-flow-renderer";
 import {
   ChannelIngredient,
   Ingredient,
@@ -19,6 +11,7 @@ import {
 } from "eroslink-file";
 import { Checkbox, Classes } from "@blueprintjs/core";
 import { FlowAutoLayout } from "./FlowAutoLayout";
+import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 
 export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
   const [elements, setElements] = useState<Elements>([]);
@@ -113,6 +106,19 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
     setElements(newElements);
   }, [props]);
 
+  const setNodePosition = useCallback((id: string, newPosition: XYPosition) => {
+    setElements(elements => elements.map(element => {
+      if (!isNode(element) || element.id !== id) {
+        return element;
+      }
+
+      return {
+        ...element,
+        position: newPosition,
+      };
+    }));
+  }, []);
+
   return <div style={{
     width: "100%",
     height: 400,
@@ -126,12 +132,12 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       panOnScroll={true}
       minZoom={0.25}
       maxZoom={1}
-      edgeTypes={{ default: CustomEdge }}
-      connectionLineComponent={CustomConnectionLine}
+      edgeTypes={{ default: NiceEdge }}
+      connectionLineComponent={NiceConnectionLine}
       elementsSelectable={false}
       nodesConnectable={false}
     >
-      <FlowAutoLayout elements={elements} setElements={setElements} />
+      <FlowAutoLayout elements={elements} setNodePosition={setNodePosition} />
     </ReactFlow>
   </div>;
 }
@@ -178,44 +184,3 @@ function IngredientLabel({ ingredient }: { ingredient: Ingredient }) {
     {body && <div style={{ marginTop: 10, textAlign: "left" }}>{body}</div>}
   </div>
 }
-
-function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, targetY: number) {
-  const distanceX = sourceX - targetX;
-  const bendiness = Math.log(distanceX) ** 2.5;
-
-  const centerY = (sourceY + targetY) / 2;
-  const sourceYOffset = (sourceY < centerY) ? -1 : 1;
-  const targetYOffset = (targetY > centerY) ? -1 : 1;
-
-  return `M${sourceX},${sourceY} C${sourceX + (1.25 * bendiness)},${sourceY + (sourceYOffset * bendiness)} ${targetX - (1.25 * bendiness)},${targetY + (targetYOffset * bendiness)} ${targetX},${targetY}`;
-}
-
-function CustomConnectionLine(props: ConnectionLineComponentProps) {
-  // TODO: This doesn't work when drawn from the "end" point
-  let edgePath;
-  if (props.targetX > props.sourceX) {
-    edgePath = getBezierPath(props);
-  } else {
-    edgePath = getNiceBezierPath(props.sourceX, props.targetX, props.sourceY, props.targetY);
-  }
-
-  return (
-    <path d={edgePath} className="react-flow__connection-path" style={props.connectionLineStyle} />
-  );
-}
-
-function CustomEdge(props: EdgeProps) {
-  let edgePath;
-  if (props.targetX > props.sourceX) {
-    edgePath = getBezierPath(props);
-  } else {
-    edgePath = getNiceBezierPath(props.sourceX, props.targetX, props.sourceY, props.targetY);
-  }
-
-  const markerEnd = getMarkerEnd(props.arrowHeadType, props.markerEndId);
-
-  return (
-    <path id={props.id} style={props.style} className="react-flow__edge-path" d={edgePath} markerEnd={markerEnd} />
-  );
-}
-

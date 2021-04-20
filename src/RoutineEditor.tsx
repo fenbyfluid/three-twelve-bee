@@ -1,205 +1,445 @@
-import { Button, Classes, EditableText, FormGroup, H3, Icon } from "@blueprintjs/core";
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Button, Classes, EditableText, FormGroup, H3, Icon, InputGroup } from "@blueprintjs/core";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Connection,
   Edge,
   Elements,
-  FlowElement,
   Handle,
-  isEdge,
-  isNode,
-  Node,
   NodeProps,
   Position,
   ReactFlowProvider,
-  removeElements,
   useUpdateNodeInternals,
+  XYPosition,
 } from "react-flow-renderer";
 import { FlowAutoLayout } from "./FlowAutoLayout";
 import "./RoutineEditor.css";
+import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
+import { Module, Routine } from "./Routine";
+
+const RoutineModuleEditorGraphContext = React.createContext<{
+  setStartPosition: (newPosition: XYPosition) => void,
+  setStartModule: (moduleId: string) => void,
+  addModule: (position: XYPosition, sourceModuleId: string, sourceIngredientId?: string | null) => void,
+  setModuleName: (moduleId: string, newName: string) => void,
+  setModulePosition: (moduleId: string, newPosition: XYPosition) => void,
+  removeModule: (moduleId: string) => void,
+  addModuleIngredient: (moduleId: string) => void,
+  moveModuleIngredient: (moduleId: string, ingredientId: string, offset: -1 | 1) => void,
+  setModuleIngredientTarget: (moduleId: string, ingredientId: string, targetModuleId: string | null) => void,
+  removeModuleIngredient: (moduleId: string, ingredientId: string) => void,
+} | null>(null);
 
 export function RoutineEditor() {
+  const [routine, setRoutine] = useState<Routine>({
+    name: "New Routine",
+    modules: [],
+  });
+
   return <div style={{ margin: "0 20px" }}>
     <H3 style={{ margin: "20px 0" }}>
       Create New Routine
     </H3>
+    <FormGroup label="Name">
+      <InputGroup value={routine.name} onChange={event => setRoutine(routine => ({
+        ...routine,
+        name: event.target.value,
+      }))} />
+    </FormGroup>
     <FormGroup label="Modules">
-      <ReactFlowProvider>
-        <RoutineEditorGraph />
-      </ReactFlowProvider>
+      <RoutineModuleEditor routine={routine} setRoutine={setRoutine} />
     </FormGroup>
   </div>;
 }
 
-const RoutineEditorGraphContext = React.createContext<{
-  onRemoveButtonClick?: (nodeId: string) => void,
-  onAddChildButtonClick?: (nodeId: string) => void,
-  onMoveChild?: (nodeId: string, childId: string, offset: -1|1) => void,
-  onRemoveChild?: (nodeId: string, childId: string) => void,
-}>({});
+function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRoutine: React.Dispatch<React.SetStateAction<Routine>> }) {
+  const setStartPosition = useCallback((newPosition: XYPosition) => {
+    setRoutine(routine => ({
+      ...routine,
+      startPosition: newPosition,
+    }));
+  }, [setRoutine]);
 
-function RoutineEditorGraph() {
-  const updateNodeInternals = useUpdateNodeInternals();
-  const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
-  useEffect(() => {
-    if (pendingUpdateId !== null) {
-      updateNodeInternals(pendingUpdateId);
-      setPendingUpdateId(null);
-    }
-  }, [updateNodeInternals, pendingUpdateId]);
-
-  const [elements, setElements] = useState<Elements>([
-    {
-      id: "start", type: "start", position: { x: 0, y: 0 }, data: {
-        label: "Start",
-      }, selectable: false,
-    },
-    {
-      id: "1", type: "module", position: { x: 0, y: 0 }, data: {
-        label: "Module 1",
-        children: [
-          { id: "1", label: "One", connection: false },
-          { id: "2", label: "Two", connection: false },
-          { id: "3", label: "Three", connection: true },
-          { id: "4", label: "Four", connection: false },
-          { id: "5", label: "Five", connection: true },
-        ],
-      },
-    },
-    {
-      id: "2", type: "module", position: { x: 0, y: 0 }, data: {
-        label: "Module 2",
-        children: [],
-      },
-    },
-    {
-      id: "3", type: "module", position: { x: 0, y: 0 }, data: {
-        label: "Module 3",
-        children: [
-          { id: "1", label: "One", connection: true },
-        ],
-      },
-    },
-    { id: "start-1", source: "start", target: "1" },
-    { id: "1.3-2", source: "1", sourceHandle: "3", target: "2" },
-    { id: "1.5-2", source: "1", sourceHandle: "5", target: "3" },
-  ]);
-
-  const onRemoveButtonClick = useCallback((nodeId: string) => {
-    setElements(elements => elements.filter(element => {
-      if (isNode(element)) {
-        return element.id !== nodeId;
+  const setStartModule = useCallback((moduleId: string) => {
+    setRoutine(routine => {
+      const startModuleIndex = routine.modules.findIndex(module => module.id === moduleId);
+      if (startModuleIndex === -1) {
+        return routine;
       }
 
-      return element.source !== nodeId && element.target !== nodeId;
+      const startModules = routine.modules.splice(startModuleIndex, 1);
+
+      return {
+        ...routine,
+        modules: [
+          ...startModules,
+          ...routine.modules,
+        ],
+      };
+    });
+  }, [setRoutine]);
+
+  const addModule = useCallback((position: XYPosition, sourceModuleId: string, sourceIngredientId?: string | null) => {
+    setRoutine(routine => {
+      const id = getNextId(routine.modules);
+
+      const newModule = {
+        id,
+        name: `Module ${id}`,
+        position,
+        ingredients: [],
+      };
+
+      if (sourceModuleId === "start") {
+        return {
+          ...routine,
+          modules: [
+            newModule,
+            ...routine.modules,
+          ],
+        };
+      }
+
+      if (!sourceIngredientId) {
+        throw new Error("missing source ingredient id");
+      }
+
+      return {
+        ...routine,
+        modules: [
+          ...(routine.modules.map(module => {
+            if (module.id !== sourceModuleId) {
+              return module;
+            }
+
+            return {
+              ...module,
+              ingredients: module.ingredients.map(ingredient => {
+                if (ingredient.id !== sourceIngredientId) {
+                  return ingredient;
+                }
+
+                if (!("target" in ingredient)) {
+                  throw new Error(`ingredient type ${ingredient.type} does not have target`);
+                }
+
+                return {
+                  ...ingredient,
+                  target: id,
+                };
+              }),
+            };
+          })),
+          newModule,
+        ],
+      };
+    });
+  }, [setRoutine]);
+
+  const setModuleName = useCallback((moduleId: string, newName: string) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
+        }
+
+        return {
+          ...module,
+          name: newName,
+        };
+      }),
     }));
-  }, [setElements]);
+  }, [setRoutine]);
 
-  const onAddChildButtonClick = useCallback((nodeId: string) => {
-    setElements(elements => {
-      return elements.map(element => {
-        if (isModuleNode(element) && element.id === nodeId) {
-          const nextId = getNextId(element.data.children);
-
-          element.data = {
-            ...element.data,
-            children: [
-              ...element.data.children,
-              { id: nextId, label: "New", connection: true },
-            ],
-          };
+  const setModulePosition = useCallback((moduleId: string, newPosition: XYPosition) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
         }
 
-        return element;
-      });
-    });
-  }, [setElements]);
+        return {
+          ...module,
+          position: newPosition,
+        };
+      }),
+    }));
+  }, [setRoutine]);
 
-  const onMoveChild = useCallback((nodeId, childId, offset) => {
-    setElements(elements => {
-      return elements.map(element => {
-        if (isModuleNode(element) && element.id === nodeId) {
-          const fromIndex = element.data.children.findIndex(c => c.id === childId);
-          const toIndex = fromIndex + offset;
-          if (toIndex < 0 || toIndex >= element.data.children.length) {
-            return element;
-          }
+  const removeModule = useCallback((moduleId: string) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules
+        .filter(module => module.id !== moduleId)
+        .map(module => ({
+          ...module,
+          ingredients: module.ingredients.map(ingredient => {
+            if (!("target" in ingredient) || ingredient.target !== moduleId) {
+              return ingredient;
+            }
 
-          const movedChild = element.data.children.splice(fromIndex, 1);
-          element.data.children.splice(toIndex, 0, ...movedChild);
+            return {
+              ...ingredient,
+              target: null,
+            };
+          }),
+        })),
+    }));
+  }, [setRoutine]);
 
-          element.data = {
-            ...element.data,
-            children: [
-              ...element.data.children,
-            ],
-          };
+  const addModuleIngredient = useCallback((moduleId: string) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
         }
 
-        return element;
-      });
-    });
+        const id = getNextId(module.ingredients);
 
-    setPendingUpdateId(nodeId);
-  }, [setElements, setPendingUpdateId]);
+        return {
+          ...module,
+          ingredients: [
+            ...module.ingredients,
+            {
+              id,
+              type: "raw-cond-exec",
+              address: 0,
+              target: null,
+            }
+          ],
+        };
+      }),
+    }));
+  }, [setRoutine]);
 
-  const onRemoveChild = useCallback((nodeId, childId) => {
-    setElements(elements => {
-      return elements.map(element => {
-        if (isModuleNode(element) && element.id === nodeId) {
-          element.data = {
-            ...element.data,
-            children: element.data.children.filter(c => c.id !== childId),
-          };
+  const moveModuleIngredient = useCallback((moduleId: string, ingredientId: string, offset: -1 | 1) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
         }
 
-        return element;
-      }).filter(element => {
-        return !isEdge(element) || element.source !== nodeId || element.sourceHandle !== childId;
-      });
+        const fromIndex = module.ingredients.findIndex(ingredient => ingredient.id === ingredientId);
+        if (fromIndex === -1) {
+          return module;
+        }
+
+        const toIndex = fromIndex + offset;
+        if (toIndex < 0 || toIndex >= module.ingredients.length) {
+          return module;
+        }
+
+        const movedIngredients = module.ingredients.splice(fromIndex, 1);
+        module.ingredients.splice(toIndex, 0, ...movedIngredients);
+
+        return {
+          ...module,
+          ingredients: [
+            ...module.ingredients,
+          ],
+        };
+      }),
+    }));
+  }, [setRoutine]);
+
+  const setModuleIngredientTarget = useCallback((moduleId: string, ingredientId: string, targetModuleId: string | null) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
+        }
+
+        return {
+          ...module,
+          ingredients: module.ingredients.map(ingredient => {
+            if (ingredient.id !== ingredientId) {
+              return ingredient;
+            }
+
+            if (!("target" in ingredient)) {
+              throw new Error(`ingredient type ${ingredient.type} does not have target`);
+            }
+
+            return {
+              ...ingredient,
+              target: targetModuleId,
+            };
+          }),
+        };
+      }),
+    }));
+  }, [setRoutine]);
+
+  const removeModuleIngredient = useCallback((moduleId: string, ingredientId: string) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
+        }
+
+        return {
+          ...module,
+          ingredients: module.ingredients.filter(ingredient => ingredient.id !== ingredientId),
+        };
+      }),
+    }));
+  }, [setRoutine]);
+
+  const providerFunctions = useMemo(() => ({
+    setStartPosition,
+    setStartModule,
+    addModule,
+    setModuleName,
+    setModulePosition,
+    removeModule,
+    addModuleIngredient,
+    moveModuleIngredient,
+    setModuleIngredientTarget,
+    removeModuleIngredient,
+  }), [
+    setStartPosition,
+    setStartModule,
+    addModule,
+    setModuleName,
+    setModulePosition,
+    removeModule,
+    addModuleIngredient,
+    moveModuleIngredient,
+    setModuleIngredientTarget,
+    removeModuleIngredient,
+  ]);
+
+  return <RoutineModuleEditorGraphContext.Provider value={providerFunctions}>
+    <ReactFlowProvider>
+      <RoutineModuleEditorGraph routine={routine} />
+    </ReactFlowProvider>
+  </RoutineModuleEditorGraphContext.Provider>;
+}
+
+function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
+  const elements = useMemo(() => {
+    const elements = [];
+
+    elements.push({
+      id: "start",
+      type: "start",
+      position: routine.startPosition || { x: 0, y: 0 },
+      selectable: false,
     });
-  }, [setElements]);
+
+    if (routine.modules.length > 0) {
+      const firstModuleId = routine.modules[0].id;
+
+      elements.push({
+        id: `start-${firstModuleId}`,
+        source: "start",
+        target: firstModuleId,
+      });
+    }
+
+    for (const module of routine.modules) {
+      elements.push({
+        id: module.id,
+        type: "module",
+        position: module.position || { x: 0, y: 0 },
+        data: module,
+      });
+
+      for (const ingredient of module.ingredients) {
+        if ("target" in ingredient && ingredient.target !== null) {
+          elements.push({
+            id: `${module.id}.${ingredient.id}-${ingredient.target}`,
+            source: module.id,
+            sourceHandle: ingredient.id,
+            target: ingredient.target,
+          });
+        }
+      }
+    }
+
+    return elements;
+  }, [routine]);
+
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  useEffect(() => {
+    for (const element of elements) {
+      if (element.type !== "module") {
+        continue;
+      }
+
+      // Update every module node in case the ingredients were modified.
+      // We're not expecting the graphs to be huge, so the performance should be fine.
+      // If we need to reduce the overhead here, we should be able to add an
+      // epoch to each Module that is updated when they're modified.
+      updateNodeInternals(element.id);
+    }
+  }, [elements, updateNodeInternals]);
+
+  const context = useContext(RoutineModuleEditorGraphContext);
+  if (!context) {
+    throw new Error("missing context");
+  }
+
+  const {
+    setStartModule,
+    setStartPosition,
+    addModule,
+    setModulePosition,
+    removeModule,
+    setModuleIngredientTarget,
+  } = context;
 
   const createNodeOnConnectEnd = useRef<{ source: string, sourceHandle: string | null } | null>(null);
 
   const onConnectStart = useCallback((event: React.MouseEvent, { nodeId, handleId, handleType }) => {
-    if (nodeId === null) {
+    if (nodeId === null || handleType !== "source") {
       return;
     }
 
-    setElements(elements => {
-      const prevLength = elements.length;
-      const newElements = elements.filter(element => {
-        return !isEdge(element) || element.source !== nodeId || (element.sourceHandle || null) !== handleId;
-      });
+    if (nodeId === "start") {
+      createNodeOnConnectEnd.current = { source: nodeId, sourceHandle: null };
 
-      if (handleType === "source" && prevLength === newElements.length) {
-        createNodeOnConnectEnd.current = { source: nodeId, sourceHandle: handleId };
-      }
+      return;
+    }
 
-      return newElements;
-    });
-  }, [setElements]);
+    if (!handleId) {
+      throw new Error("missing handle id");
+    }
+
+    if (handleType === "source") {
+      createNodeOnConnectEnd.current = { source: nodeId, sourceHandle: handleId };
+    }
+  }, []);
 
   const onConnect = useCallback((connection: Edge | Connection) => {
     createNodeOnConnectEnd.current = null;
+
+    if (connection.source === null || connection.target === null) {
+      return;
+    }
+
+    if (connection.source === "start") {
+      setStartModule(connection.target);
+
+      return;
+    }
+
+    if (!connection.sourceHandle) {
+      throw new Error("missing source handle id");
+    }
 
     if (connection.source === connection.target) {
       return;
     }
 
-    const newEdge: Edge = {
-      id: `${connection.source}${connection.sourceHandle ? `.${connection.sourceHandle}` : ''}-${connection.target}`,
-      source: connection.source!,
-      sourceHandle: connection.sourceHandle || null,
-      target: connection.target!,
-    };
-
-    setElements(elements => [
-      ...elements.filter(element => !isEdge(element) || element.source !== newEdge.source || (element.sourceHandle || null) !== newEdge.sourceHandle),
-      newEdge,
-    ]);
-  }, [setElements]);
+    setModuleIngredientTarget(connection.source, connection.sourceHandle, connection.target);
+  }, [setStartModule, setModuleIngredientTarget]);
 
   const onConnectEnd = useCallback((event: MouseEvent) => {
     if (createNodeOnConnectEnd.current === null) {
@@ -233,33 +473,43 @@ function RoutineEditorGraph() {
     const connection = createNodeOnConnectEnd.current;
     createNodeOnConnectEnd.current = null;
 
-    setElements(elements => {
-      const nextId = getNextId(elements);
+    addModule(position, connection.source, connection.sourceHandle);
+  }, [addModule]);
 
-      const newNode: Node<ModuleNodeData> = {
-        id: nextId,
-        type: "module",
-        position,
-        data: {
-          label: `Module ${nextId}`,
-          children: [],
-        },
-      };
+  const onElementsRemove = useCallback((removedElements: Elements) => {
+    for (const element of removedElements) {
+      if (element.type === "module") {
+        removeModule(element.id);
 
-      const newEdge: Edge = {
-        id: `${connection.source}${connection.sourceHandle ? `.${connection.sourceHandle}` : ''}-${newNode.id}`,
-        source: connection.source,
-        sourceHandle: connection.sourceHandle,
-        target: newNode.id,
-      };
+        continue;
+      }
 
-      return [
-        ...elements,
-        newNode,
-        newEdge,
-      ];
-    });
-  }, [setElements]);
+      if (!("source" in element)) {
+        continue;
+      }
+
+      if (element.source === "start") {
+        // We don't support removing the start edge.
+        // setStartModule(null);
+
+        continue;
+      }
+
+      if (!element.sourceHandle) {
+        throw new Error("missing source handle id");
+      }
+
+      setModuleIngredientTarget(element.source, element.sourceHandle, null);
+    }
+  }, [removeModule, setModuleIngredientTarget]);
+
+  const setNodePosition = useCallback((id: string, newPosition: XYPosition) => {
+    if (id === "start") {
+      setStartPosition(newPosition);
+    } else {
+      setModulePosition(id, newPosition);
+    }
+  }, [setStartPosition, setModulePosition]);
 
   return <div style={{
     width: "100%",
@@ -267,42 +517,32 @@ function RoutineEditorGraph() {
     borderRadius: 3,
     boxShadow: "0 0 0 1px rgb(16 22 26 / 10%), 0 0 0 rgb(16 22 26 / 0%), 0 1px 1px rgb(16 22 26 / 20%)",
   }}>
-    <RoutineEditorGraphContext.Provider value={{ onRemoveButtonClick, onAddChildButtonClick, onMoveChild, onRemoveChild }}>
-      <ReactFlow
-        elements={elements}
-        zoomOnDoubleClick={false}
-        zoomOnScroll={false}
-        panOnScroll={true}
-        minZoom={0.25}
-        maxZoom={1}
-        nodeTypes={{ start: StartNode, module: ModuleNode }}
-        edgeTypes={{ default: undefined }}
-        connectionLineComponent={undefined}
-        onConnectStart={onConnectStart}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        onElementsRemove={removedElements => { setElements(elements => removeElements(removedElements, elements)); }}
-      >
-        <FlowAutoLayout elements={elements} setElements={setElements} />
-      </ReactFlow>
-    </RoutineEditorGraphContext.Provider>
+    <ReactFlow
+      elements={elements}
+      zoomOnDoubleClick={false}
+      zoomOnScroll={false}
+      panOnScroll={true}
+      minZoom={0.25}
+      maxZoom={1}
+      nodeTypes={{ start: StartNode, module: ModuleNode }}
+      edgeTypes={{ default: NiceEdge }}
+      connectionLineComponent={NiceConnectionLine}
+      onConnectStart={onConnectStart}
+      onConnect={onConnect}
+      onConnectEnd={onConnectEnd}
+      onElementsRemove={onElementsRemove}
+      onNodeDragStop={(event, node) => setNodePosition(node.id, node.position)}
+    >
+      <FlowAutoLayout elements={elements} setNodePosition={setNodePosition} />
+    </ReactFlow>
   </div>;
 }
 
-function StartNode({ data, isConnectable, sourcePosition = Position.Right }: NodeProps<{ label: string }>) {
+function StartNode({ isConnectable, sourcePosition = Position.Right }: NodeProps<undefined>) {
   return <>
-    {data.label}
+    Start
     <Handle type="source" position={sourcePosition} isConnectable={isConnectable} />
   </>
-}
-
-interface ModuleNodeData {
-  label: string,
-  children: {
-    id: string,
-    label: string,
-    connection: boolean,
-  }[],
 }
 
 function ModuleNode({
@@ -310,13 +550,20 @@ function ModuleNode({
   data,
   isConnectable,
   targetPosition = Position.Left,
-}: NodeProps<ModuleNodeData>) {
+  sourcePosition = Position.Right,
+}: NodeProps<Module>) {
+  const context = useContext(RoutineModuleEditorGraphContext);
+  if (!context) {
+    throw new Error("missing context");
+  }
+
   const {
-    onRemoveButtonClick,
-    onAddChildButtonClick,
-    onMoveChild,
-    onRemoveChild,
-  } = useContext(RoutineEditorGraphContext);
+    setModuleName,
+    removeModule,
+    addModuleIngredient,
+    moveModuleIngredient,
+    removeModuleIngredient,
+  } = context;
 
   const [dragState, setDragState] = useState<{ id: string, el: HTMLElement } | null>(null);
 
@@ -332,29 +579,25 @@ function ModuleNode({
       return;
     }
 
-    onMoveChild!(id, dragState.id, offset > 0 ? 1 : -1);
+    moveModuleIngredient(id,  dragState.id, offset > 0 ? 1 : -1);
   };
 
-  return <div onMouseUp={() => setDragState(null)} onMouseMove={onMoveChild && onMouseMove}>
+  return <div onMouseUp={() => setDragState(null)} onMouseMove={onMouseMove}>
     <div className="react-flow__node-module__row react-flow__node-module__header">
-      <EditableText value={data.label} className="nodrag" minWidth={100} />
-      <Icon className={`react-flow__node-module__header__remove nodrag ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => onRemoveButtonClick && onRemoveButtonClick(id)} />
+      <EditableText defaultValue={data.name} onConfirm={value => setModuleName(id, value)} className="nodrag" minWidth={100} />
+      <Icon className={`react-flow__node-module__header__remove nodrag ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModule(id)} />
       <Handle type="target" position={targetPosition} isConnectable={isConnectable} />
     </div>
-    {data.children.map(c => <div key={c.id} className="react-flow__node-module__row react-flow__node-module__child">
-      <span className="react-flow__node-module__child__label">{c.label}</span>
-      <Icon className={`react-flow__node-module__child__icon nodrag ${Classes.TEXT_MUTED}`} icon="drag-handle-vertical" onMouseDown={ev => setDragState({ id: c.id, el: ev.currentTarget })} />
-      <Icon className={`react-flow__node-module__child__icon nodrag ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => onRemoveChild && onRemoveChild(id, c.id)} />
-      {c.connection && <Handle type="source" position={Position.Right} isConnectable={isConnectable} id={c.id} />}
+    {data.ingredients.map(ingredient => <div key={ingredient.id} className="react-flow__node-module__row react-flow__node-module__child nodrag">
+      <span className="react-flow__node-module__child__label">{ingredient.type}</span>{/* TODO */}
+      <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="drag-handle-vertical" onMouseDown={ev => setDragState({ id: ingredient.id, el: ev.currentTarget })} />
+      <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModuleIngredient(id, ingredient.id)} />
+      {("target" in ingredient) && <Handle type="source" position={sourcePosition} isConnectable={isConnectable} id={ingredient.id} />}
     </div>)}
     <div className="react-flow__node-module__row">
-      <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" onClick={() => onAddChildButtonClick && onAddChildButtonClick(id)} />
+      <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" onClick={() => addModuleIngredient(id)} />
     </div>
   </div>
-}
-
-function isModuleNode(element: FlowElement): element is Node<ModuleNodeData> & { data: ModuleNodeData } {
-  return isNode(element) && element.type === "module";
 }
 
 function getNextId(elements: { id: string }[]): string {

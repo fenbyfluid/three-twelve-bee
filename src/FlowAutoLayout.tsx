@@ -1,14 +1,19 @@
-import { Elements, isNode, useStoreState, useZoomPanHelper } from "react-flow-renderer";
-import React, { useEffect } from "react";
+import { Elements, isNode, useStoreState, useZoomPanHelper, XYPosition } from "react-flow-renderer";
+import React, { useCallback, useEffect } from "react";
 import dagre from "dagre";
 import { Button } from "@blueprintjs/core";
 
-export function FlowAutoLayout(props: { elements: Elements, setElements: React.Dispatch<React.SetStateAction<Elements>> }) {
+interface FlowAutoLayoutProps {
+  elements: Elements,
+  setNodePosition: (id: string, newPosition: XYPosition) => void,
+}
+
+export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProps) {
   const zoomPanHelper = useZoomPanHelper();
   const { nodes, edges } = useStoreState(({ nodes, edges }) => ({ nodes, edges }));
 
   useEffect(() => {
-    const needsLayout = props.elements.some(el => isNode(el) && el.position.x === 0);
+    const needsLayout = elements.some(el => isNode(el) && el.position.x === 0);
     if (!needsLayout) {
       return;
     }
@@ -25,7 +30,7 @@ export function FlowAutoLayout(props: { elements: Elements, setElements: React.D
 
     graph.setDefaultEdgeLabel(() => ({}));
 
-    const done = new Set();
+    const done = new Set<string>();
 
     for (const node of nodes) {
       if (!node.__rf.width || !node.__rf.height) {
@@ -47,40 +52,29 @@ export function FlowAutoLayout(props: { elements: Elements, setElements: React.D
 
     dagre.layout(graph);
 
-    props.setElements(elements => elements.map(el => {
-      if (!isNode(el)) {
-        return el;
-      }
+    for (const id of done) {
+      const node = graph.node(id);
 
-      const nodeWithPosition = graph.node(el.id);
-      if (!nodeWithPosition) {
-        return el;
-      }
-
-      el.position = {
-        x: nodeWithPosition.x - (nodeWithPosition.width / 2),
-        y: nodeWithPosition.y - (nodeWithPosition.height / 2),
-      };
-
-      return el;
-    }));
+      setNodePosition(id, {
+        x: node.x - (node.width / 2),
+        y: node.y - (node.height / 2),
+      });
+    }
 
     setTimeout(() => {
       zoomPanHelper.fitView({ padding: 0.1 });
     }, 100);
-  }, [zoomPanHelper, nodes, edges, props]);
+  }, [zoomPanHelper, nodes, edges, elements, setNodePosition]);
 
-  const resetLayout = () => {
-    props.setElements(elements => elements.map(el => {
-      if (!isNode(el)) {
-        return el;
+  const resetLayout = useCallback(() => {
+    for (const element of elements) {
+      if (!isNode(element)) {
+        continue;
       }
 
-      el.position = { x: 0, y: 0 };
-
-      return el;
-    }));
-  };
+      setNodePosition(element.id, { x: 0, y: 0 });
+    }
+  }, [elements, setNodePosition]);
 
   return <Button
     minimal={true}
