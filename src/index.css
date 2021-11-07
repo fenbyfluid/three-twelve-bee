@@ -4,6 +4,8 @@
 @import "~@blueprintjs/core/lib/css/blueprint.css";
 /* noinspection CssInvalidImport */
 @import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
+/* noinspection CssInvalidImport */
+@import "~@blueprintjs/popover2/lib/css/blueprint-popover2.css";
 
 .bp3-navbar-group .bp3-tab {
     line-height: 50px;

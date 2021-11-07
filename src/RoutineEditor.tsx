@@ -14,7 +14,8 @@ import ReactFlow, {
 import { FlowAutoLayout } from "./FlowAutoLayout";
 import "./RoutineEditor.css";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
-import { Module, Routine } from "./Routine";
+import { Ingredient, Module, Routine } from "./Routine";
+import { RoutineModuleIngredientEditor } from "./RoutineModuleIngredientEditor";
 
 const RoutineModuleEditorGraphContext = React.createContext<{
   setStartPosition: (newPosition: XYPosition) => void,
@@ -23,16 +24,59 @@ const RoutineModuleEditorGraphContext = React.createContext<{
   setModuleName: (moduleId: string, newName: string) => void,
   setModulePosition: (moduleId: string, newPosition: XYPosition) => void,
   removeModule: (moduleId: string) => void,
-  addModuleIngredient: (moduleId: string) => void,
+  addModuleIngredient: (moduleId: string, newIngredient: Ingredient) => void,
   moveModuleIngredient: (moduleId: string, ingredientId: string, offset: -1 | 1) => void,
   setModuleIngredientTarget: (moduleId: string, ingredientId: string, targetModuleId: string | null) => void,
+  replaceModuleIngredient: (moduleId: string, newIngredient: Ingredient) => void,
   removeModuleIngredient: (moduleId: string, ingredientId: string) => void,
 } | null>(null);
 
 export function RoutineEditor() {
   const [routine, setRoutine] = useState<Routine>({
     name: "New Routine",
-    modules: [],
+    modules: [
+      {
+        id: "1",
+        name: "Module 1",
+        ingredients: [
+          {
+            id: "1",
+            type: "affect-channels",
+            channels: "both",
+          },
+          {
+            id: "2",
+            type: "set-value",
+            parameter: "intensity",
+            value: 50,
+          },
+          {
+            id: "3",
+            type: "delay-exec",
+            delay: 5,
+            target: "2",
+          },
+        ],
+      },
+      {
+        id: "2",
+        name: "Module 2",
+        ingredients: [
+          {
+            id: "1",
+            type: "set-value",
+            parameter: "intensity",
+            value: 0,
+          },
+          {
+            id: "2",
+            type: "delay-exec",
+            delay: 5,
+            target: "1",
+          },
+        ],
+      },
+    ],
   });
 
   return <div style={{ margin: "0 20px" }}>
@@ -51,7 +95,10 @@ export function RoutineEditor() {
   </div>;
 }
 
-function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRoutine: React.Dispatch<React.SetStateAction<Routine>> }) {
+function RoutineModuleEditor({
+  routine,
+  setRoutine,
+}: { routine: Routine, setRoutine: React.Dispatch<React.SetStateAction<Routine>> }) {
   const setStartPosition = useCallback((newPosition: XYPosition) => {
     setRoutine(routine => ({
       ...routine,
@@ -188,7 +235,7 @@ function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRou
     }));
   }, [setRoutine]);
 
-  const addModuleIngredient = useCallback((moduleId: string) => {
+  const addModuleIngredient = useCallback((moduleId: string, newIngredient: Ingredient) => {
     setRoutine(routine => ({
       ...routine,
       modules: routine.modules.map(module => {
@@ -203,11 +250,9 @@ function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRou
           ingredients: [
             ...module.ingredients,
             {
+              ...newIngredient,
               id,
-              type: "raw-cond-exec",
-              address: 0,
-              target: null,
-            }
+            },
           ],
         };
       }),
@@ -274,6 +319,28 @@ function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRou
     }));
   }, [setRoutine]);
 
+  const replaceModuleIngredient = useCallback((moduleId: string, newIngredient: Ingredient) => {
+    setRoutine(routine => ({
+      ...routine,
+      modules: routine.modules.map(module => {
+        if (module.id !== moduleId) {
+          return module;
+        }
+
+        return {
+          ...module,
+          ingredients: module.ingredients.map(ingredient => {
+            if (ingredient.id !== newIngredient.id) {
+              return ingredient;
+            }
+
+            return newIngredient;
+          }),
+        };
+      }),
+    }));
+  }, [setRoutine]);
+
   const removeModuleIngredient = useCallback((moduleId: string, ingredientId: string) => {
     setRoutine(routine => ({
       ...routine,
@@ -300,6 +367,7 @@ function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRou
     addModuleIngredient,
     moveModuleIngredient,
     setModuleIngredientTarget,
+    replaceModuleIngredient,
     removeModuleIngredient,
   }), [
     setStartPosition,
@@ -311,6 +379,7 @@ function RoutineModuleEditor({ routine, setRoutine }: { routine: Routine, setRou
     addModuleIngredient,
     moveModuleIngredient,
     setModuleIngredientTarget,
+    replaceModuleIngredient,
     removeModuleIngredient,
   ]);
 
@@ -542,7 +611,7 @@ function StartNode({ isConnectable, sourcePosition = Position.Right }: NodeProps
   return <>
     Start
     <Handle type="source" position={sourcePosition} isConnectable={isConnectable} />
-  </>
+  </>;
 }
 
 function ModuleNode({
@@ -562,6 +631,7 @@ function ModuleNode({
     removeModule,
     addModuleIngredient,
     moveModuleIngredient,
+    replaceModuleIngredient,
     removeModuleIngredient,
   } = context;
 
@@ -579,7 +649,7 @@ function ModuleNode({
       return;
     }
 
-    moveModuleIngredient(id,  dragState.id, offset > 0 ? 1 : -1);
+    moveModuleIngredient(id, dragState.id, offset > 0 ? 1 : -1);
   };
 
   return <div onMouseUp={() => setDragState(null)} onMouseMove={onMouseMove}>
@@ -588,16 +658,22 @@ function ModuleNode({
       <Icon className={`react-flow__node-module__header__remove nodrag ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModule(id)} />
       <Handle type="target" position={targetPosition} isConnectable={isConnectable} />
     </div>
-    {data.ingredients.map(ingredient => <div key={ingredient.id} className="react-flow__node-module__row react-flow__node-module__child nodrag">
-      <span className="react-flow__node-module__child__label">{ingredient.type}</span>{/* TODO */}
-      <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="drag-handle-vertical" onMouseDown={ev => setDragState({ id: ingredient.id, el: ev.currentTarget })} />
-      <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModuleIngredient(id, ingredient.id)} />
-      {("target" in ingredient) && <Handle type="source" position={sourcePosition} isConnectable={isConnectable} id={ingredient.id} />}
-    </div>)}
+    {data.ingredients.map(ingredient =>
+      <div key={ingredient.id} className="react-flow__node-module__row react-flow__node-module__child nodrag">
+        <div className="react-flow__node-module__child__label">
+          <RoutineModuleIngredientEditor ingredient={ingredient} onChange={newIngredient => replaceModuleIngredient(id, newIngredient)} />
+        </div>
+        <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="drag-handle-vertical" onMouseDown={ev => setDragState({
+          id: ingredient.id,
+          el: ev.currentTarget,
+        })} />
+        <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModuleIngredient(id, ingredient.id)} />
+        {("target" in ingredient) && <Handle type="source" position={sourcePosition} isConnectable={isConnectable} id={ingredient.id} />}
+      </div>)}
     <div className="react-flow__node-module__row">
-      <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" onClick={() => addModuleIngredient(id)} />
+      <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" onClick={() => addModuleIngredient(id, { id: "", type: "delay-exec", delay: 5, target: null })} />
     </div>
-  </div>
+  </div>;
 }
 
 function getNextId(elements: { id: string }[]): string {

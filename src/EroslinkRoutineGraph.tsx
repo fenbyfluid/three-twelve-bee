@@ -3,6 +3,7 @@ import ReactFlow, { ArrowHeadType, Elements, isNode, Position, XYPosition } from
 import {
   ChannelIngredient,
   Ingredient,
+  MultiARampIngredient,
   RampIngredient,
   RawIngredient,
   Routine,
@@ -171,6 +172,14 @@ function IngredientLabel({ ingredient }: { ingredient: Ingredient }) {
       <div><Checkbox readOnly={true} label="Set Intensity" checked={ingredient.setIntensity} /></div>
       <div><Checkbox readOnly={true} label="Set Frequency" checked={ingredient.setFrequency} /></div>
       <div><Checkbox readOnly={true} label="Set Pulse Width" checked={ingredient.setPulseWidth} /></div>
+      <div><Checkbox readOnly={true} label="Full Range" checked={ingredient.fullRange} /></div>
+      {(ingredient instanceof MultiARampIngredient) && <>
+        <div><Checkbox readOnly={true} label="MA Set Intensity" checked={ingredient.multiASetIntensity} /></div>
+        <div><Checkbox readOnly={true} label="MA Set Frequency" checked={ingredient.multiASetFrequency} /></div>
+        <div><Checkbox readOnly={true} label="MA Set Pulse Width" checked={ingredient.multiASetPulseWidth} /></div>
+        <div><Checkbox readOnly={true} label="MA Affects Min" checked={ingredient.multiAAffectsMin} /></div>
+        <div>Other Bound: {ingredient.otherBound}</div>
+      </>}
     </>;
   } else if (ingredient instanceof TimeGotoIngredient) {
     body = <>

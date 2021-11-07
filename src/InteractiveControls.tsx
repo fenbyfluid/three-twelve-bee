@@ -39,7 +39,7 @@ function ChannelControls(props: ChannelControlsProps) {
       <ChannelControl label="Off" multiAdjust={false} source="Effect" sourceChecked={false} />
     </Card>
     <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Level</H6>
+      <H6 className="channel-control-group-label">Intensity</H6>
       <ChannelControl label="Val" />
       <ChannelControl label="Min" source="Depth" sourceChecked={false} />
       <ChannelControl label="Max" />

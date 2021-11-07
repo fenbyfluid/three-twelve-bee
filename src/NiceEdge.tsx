@@ -5,7 +5,7 @@ function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, ta
   const distanceX = Math.abs(sourceX - targetX);
   const bendiness = Math.log(distanceX + 1) ** 2.5;
 
-  const sourceYOffset = (sourceY > targetY) ? -1 : 1;
+  const sourceYOffset = (sourceY > targetY && sourceX < targetX) ? -1 : 1;
   const targetYOffset = (sourceY <= targetY) ? -1 : 1;
 
   return `M${sourceX},${sourceY} C${sourceX + (1.25 * bendiness)},${sourceY + (sourceYOffset * bendiness)} ${targetX - (1.25 * bendiness)},${targetY + (targetYOffset * bendiness)} ${targetX},${targetY}`;
