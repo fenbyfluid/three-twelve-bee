@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactFlow, { ArrowHeadType, Elements, isNode, Position, XYPosition } from "react-flow-renderer";
 import {
   ChannelIngredient,
@@ -120,6 +120,8 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
     }));
   }, []);
 
+  const edgeTypes = useMemo(() => ({ default: NiceEdge }), []);
+
   return <div style={{
     width: "100%",
     height: 400,
@@ -133,7 +135,7 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       panOnScroll={true}
       minZoom={0.25}
       maxZoom={1}
-      edgeTypes={{ default: NiceEdge }}
+      edgeTypes={edgeTypes}
       connectionLineComponent={NiceConnectionLine}
       elementsSelectable={false}
       nodesConnectable={false}

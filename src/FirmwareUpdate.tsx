@@ -57,7 +57,7 @@ export function FirmwareUpdate() {
       setState({
         running: false,
         error: true,
-        message: ex.message,
+        message: ex instanceof Error ? ex.message : 'Unknown Error',
       });
     } finally {
       if (device) {

@@ -7,14 +7,6 @@ interface ConnectionBarProps {
   setDevice: React.Dispatch<React.SetStateAction<DeviceConnection | null>>;
 }
 
-// @types/dom-serial is currently missing these
-declare global {
-  interface SerialPort extends EventTarget {
-    onconnect: EventHandler;
-    ondisconnect: EventHandler;
-  }
-}
-
 export function ConnectionBar(props: ConnectionBarProps) {
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -90,6 +82,11 @@ export function ConnectionBar(props: ConnectionBarProps) {
     try {
       port = await navigator.serial.requestPort();
     } catch (ex) {
+      if (!(ex instanceof Error)) {
+        setErrorMessage("Unknown error.");
+        return;
+      }
+
       if (ex.name === "SecurityError") {
         setErrorMessage("Serial port API access is not allowed.");
         return;
@@ -115,7 +112,7 @@ export function ConnectionBar(props: ConnectionBarProps) {
     try {
       await connection.open();
     } catch (ex) {
-      setErrorMessage(ex.message);
+      setErrorMessage(ex instanceof Error ? ex.message : 'Unknown Error');
       return;
     }
 

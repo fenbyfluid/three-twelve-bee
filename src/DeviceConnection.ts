@@ -1,10 +1,3 @@
-// @types/dom-serial is currently missing this
-declare global {
-  interface SerialPort {
-    close(): Promise<void>;
-  }
-}
-
 // TODO: We could do with having a higher-level concept of reader and writer commands,
 //       which we could then allow reader commands to queue indefinitely, but always wait on
 //       writer commands (and wait for all the reader commands to be done before writing).
@@ -301,6 +294,10 @@ export class DeviceConnection extends EventTarget {
 
   private async buffer(length: number): Promise<void> {
     if (!this.reader) {
+      if (!this.port.readable) {
+        throw new Error('Port is not readable');
+      }
+
       this.reader = this.port.readable.getReader();
     }
 
@@ -391,6 +388,10 @@ export class DeviceConnection extends EventTarget {
 
   private async writeRaw(buffer: Uint8Array): Promise<void> {
     if (!this.writer) {
+      if (!this.port.writable) {
+        throw new Error('Port is not writable');
+      }
+
       this.writer = this.port.writable.getWriter();
     }
 

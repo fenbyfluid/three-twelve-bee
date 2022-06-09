@@ -117,11 +117,11 @@
     color: #555;
 }
 
-.react-flow__node-module__child__icon.bp3-icon-drag-handle-vertical {
+.react-flow__node-module__child__icon.bp4-icon-drag-handle-vertical {
     cursor: grab;
 }
 
-.react-flow__node-module__child__icon.bp3-icon-small-cross {
+.react-flow__node-module__child__icon.bp4-icon-small-cross {
     cursor: pointer;
 }
 
@@ -133,7 +133,7 @@
     border-bottom: 1px dotted;
 }
 
-.bp3-popover2.editor-slider-popover .bp3-popover2-content {
+.bp4-popover2.editor-slider-popover .bp4-popover2-content {
     min-width: 180px;
     max-width: 350px;
     padding: 10px;

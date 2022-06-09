@@ -34,7 +34,7 @@ export function EroslinkRoutineViewer() {
           setRoutine(null);
         }
       } catch (err) {
-        setFileError(err.message);
+        setFileError(err instanceof Error ? err.message : 'Unknown Error');
       }
     });
   };

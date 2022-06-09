@@ -580,6 +580,9 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     }
   }, [setStartPosition, setModulePosition]);
 
+  const nodeTypes = useMemo(() => ({ start: StartNode, module: ModuleNode }), []);
+  const edgeTypes = useMemo(() => ({ default: NiceEdge }), []);
+
   return <div style={{
     width: "100%",
     height: 400,
@@ -593,8 +596,8 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
       panOnScroll={true}
       minZoom={0.25}
       maxZoom={1}
-      nodeTypes={{ start: StartNode, module: ModuleNode }}
-      edgeTypes={{ default: NiceEdge }}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       connectionLineComponent={NiceConnectionLine}
       onConnectStart={onConnectStart}
       onConnect={onConnect}
