@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Classes, Navbar, Tab, Tabs } from "@blueprintjs/core";
+import { Button, Classes, Expander, Navbar, Tab, Tabs } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
@@ -72,8 +72,23 @@ export function App() {
       </div>
     </Navbar>}
 
-    <div className="container" style={{ paddingTop: (currentPage !== "menu") ? 50 : 0 }}>
-      {page}
+    <div className="container flex-container" style={{ paddingTop: (currentPage !== "menu") ? 50 : 0 }}>
+      <div>{page}</div>
+      <Expander />
+      <div className={`footer ${Classes.TEXT_SMALL} ${Classes.TEXT_MUTED}`}>
+        <p>
+          Created with{' '}
+          <a target="_blank" rel="noreferrer" href="https://blueprintjs.com">Blueprint</a>
+          {', '}
+          <a target="_blank" rel="noreferrer" href="https://reactjs.org">React</a>
+          {', and '}
+          <a target="_blank" rel="noreferrer" href="https://reactflow.dev">React Flow</a>
+        </p>
+        {(process.env.REACT_APP_GITHUB_REPO ?? '').length > 0 && <p>
+          {/* eslint-disable-next-line */}
+            <a target="_blank" rel="noopener" href={`https://github.com/${process.env.REACT_APP_GITHUB_REPO}`}>Fork me on GitHub</a>
+        </p>}
+      </div>
     </div>
   </>;
 }
