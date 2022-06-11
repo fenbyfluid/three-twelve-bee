@@ -1,4 +1,4 @@
-import { Button, Classes, EditableText, FormGroup, H3, Icon, InputGroup } from "@blueprintjs/core";
+import { Button, Classes, EditableText, FormGroup, H3, Icon, InputGroup, MenuItem } from "@blueprintjs/core";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Connection,
@@ -16,6 +16,7 @@ import "./RoutineEditor.css";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 import { Ingredient, Module, Routine } from "./Routine";
 import { RoutineModuleIngredientEditor } from "./RoutineModuleIngredientEditor";
+import { ItemRenderer, Select2 } from "@blueprintjs/select";
 
 const RoutineModuleEditorGraphContext = React.createContext<{
   setStartPosition: (newPosition: XYPosition) => void,
@@ -34,49 +35,7 @@ const RoutineModuleEditorGraphContext = React.createContext<{
 export function RoutineEditor() {
   const [routine, setRoutine] = useState<Routine>({
     name: "New Routine",
-    modules: [
-      {
-        id: "1",
-        name: "Module 1",
-        ingredients: [
-          {
-            id: "1",
-            type: "affect-channels",
-            channels: "both",
-          },
-          {
-            id: "2",
-            type: "set-value",
-            parameter: "intensity",
-            value: 50,
-          },
-          {
-            id: "3",
-            type: "delay-exec",
-            delay: 5,
-            target: "2",
-          },
-        ],
-      },
-      {
-        id: "2",
-        name: "Module 2",
-        ingredients: [
-          {
-            id: "1",
-            type: "set-value",
-            parameter: "intensity",
-            value: 0,
-          },
-          {
-            id: "2",
-            type: "delay-exec",
-            delay: 5,
-            target: "1",
-          },
-        ],
-      },
-    ],
+    modules: [],
   });
 
   return <div style={{ margin: "0 20px" }}>
@@ -617,6 +576,54 @@ function StartNode({ isConnectable, sourcePosition = Position.Right }: NodeProps
   </>;
 }
 
+function AddIngredientButton({
+  moduleId,
+  addModuleIngredient,
+}: { moduleId: string, addModuleIngredient: (moduleId: string, newIngredient: Ingredient) => void }) {
+  const items: Ingredient[] = [
+    { id: "", type: "affect-channels", channels: "both" },
+    { id: "", type: "delay-exec", delay: 5, target: null },
+    { id: "", type: "set-value", parameter: "intensity", value: 50 },
+    // { id: "", type: "raw-cond-exec", address: 0, target: null },
+    // { id: "", type: "raw-set-value", address: 0, value: 0 },
+  ];
+
+  const ingredientNames: { [key in Ingredient["type"]]: string } = {
+    "affect-channels": "Affects Channels",
+    "delay-exec": "Delay Exec",
+    "set-value": "Set Value",
+    "raw-cond-exec": "Raw Cond Exec",
+    "raw-set-value": "Raw Set Value",
+  } as const;
+
+  const itemRenderer: ItemRenderer<Ingredient> = (item, { handleClick, handleFocus, modifiers }) => {
+    if (!modifiers.matchesPredicate) {
+      return null;
+    }
+
+    return <MenuItem
+      selected={modifiers.active}
+      onClick={handleClick}
+      onFocus={handleFocus}
+      key={item.type}
+      text={ingredientNames[item.type]}
+    />;
+  };
+
+  const onItemSelect = (item: Ingredient) => {
+    addModuleIngredient(moduleId, item);
+  };
+
+  return <Select2 items={items} itemRenderer={itemRenderer} onItemSelect={onItemSelect} filterable={false} popoverProps={{
+    hasBackdrop: true,
+    matchTargetWidth: true,
+  }} popoverContentProps={{
+    className: "add-ingredient-menu",
+  }}>
+    <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" />
+  </Select2>;
+}
+
 function ModuleNode({
   id,
   data,
@@ -663,18 +670,19 @@ function ModuleNode({
     </div>
     {data.ingredients.map(ingredient =>
       <div key={ingredient.id} className="react-flow__node-module__row react-flow__node-module__child nodrag">
-        <div className="react-flow__node-module__child__label">
-          <RoutineModuleIngredientEditor ingredient={ingredient} onChange={newIngredient => replaceModuleIngredient(id, newIngredient)} />
-        </div>
         <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="drag-handle-vertical" onMouseDown={ev => setDragState({
           id: ingredient.id,
           el: ev.currentTarget,
         })} />
+        <div className="react-flow__node-module__child__label">
+          <RoutineModuleIngredientEditor ingredient={ingredient} onChange={newIngredient => replaceModuleIngredient(id, newIngredient)} />
+        </div>
         <Icon className={`react-flow__node-module__child__icon ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModuleIngredient(id, ingredient.id)} />
-        {("target" in ingredient) && <Handle type="source" position={sourcePosition} isConnectable={isConnectable} id={ingredient.id} />}
+        {("target" in ingredient) &&
+            <Handle type="source" position={sourcePosition} isConnectable={isConnectable} id={ingredient.id} />}
       </div>)}
     <div className="react-flow__node-module__row">
-      <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" onClick={() => addModuleIngredient(id, { id: "", type: "delay-exec", delay: 5, target: null })} />
+      <AddIngredientButton moduleId={id} addModuleIngredient={addModuleIngredient} />
     </div>
   </div>;
 }
