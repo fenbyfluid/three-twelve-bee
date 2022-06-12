@@ -13,7 +13,7 @@ export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProp
   const { nodes, edges } = useStoreState(({ nodes, edges }) => ({ nodes, edges }));
 
   useEffect(() => {
-    const needsLayout = elements.some(el => isNode(el) && el.position.x === 0);
+    const needsLayout = elements.some(el => isNode(el) && el.id !== "start" && el.position.x === 0);
     if (!needsLayout) {
       return;
     }
@@ -63,8 +63,12 @@ export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProp
 
     setTimeout(() => {
       zoomPanHelper.fitView({ padding: 0.1 });
-    }, 100);
+    }, 200);
   }, [zoomPanHelper, nodes, edges, elements, setNodePosition]);
+
+  useEffect(() => {
+    zoomPanHelper.fitView({ padding: 0.1 });
+  }, [zoomPanHelper]);
 
   const resetLayout = useCallback(() => {
     for (const element of elements) {

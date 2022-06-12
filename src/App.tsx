@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Classes, Expander, Navbar, Tab, Tabs } from "@blueprintjs/core";
+import { Button, Classes, Expander, Icon, Navbar, Tab, Tabs } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
@@ -8,10 +8,11 @@ import { InteractiveControls } from "./InteractiveControls";
 import { ProgramManager } from "./ProgramManager";
 import { InstructionTester } from "./InstructionTester";
 import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
-import { RoutineEditor } from "./RoutineEditor";
+import { AdvancedDesigner } from "./AdvancedDesigner";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");
+  const [backAction, setBackAction] = useState<(() => void) | null>(null);
   const [device, setDevice] = useState<DeviceConnection | null>(null);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function App() {
       page = device && <InteractiveControls device={device} />;
       break;
     case "designer":
-      page = <RoutineEditor />;
+      page = <AdvancedDesigner setBackAction={setBackAction} />;
       break;
     case "programs":
       page = device && <ProgramManager device={device} />;
@@ -58,8 +59,8 @@ export function App() {
     {currentPage !== "menu" && <Navbar fixedToTop={true}>
       <div className="container">
         <Navbar.Group align="left">
-          <Button icon="chevron-left" className={Classes.MINIMAL} large={true} onClick={() => setPage("menu")}>
-            Menu
+          <Button icon={<Icon icon="chevron-left" size={20} />} className={Classes.MINIMAL} large={true} onClick={() => backAction ? backAction() : setPage("menu")}>
+            {backAction ? "Back" : "Menu"}
           </Button>
         </Navbar.Group>
         {device && <Navbar.Group align="right">

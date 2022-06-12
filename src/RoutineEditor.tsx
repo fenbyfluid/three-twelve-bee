@@ -1,4 +1,4 @@
-import { Button, Classes, EditableText, FormGroup, H3, Icon, InputGroup, MenuItem } from "@blueprintjs/core";
+import { Button, Classes, EditableText, FormGroup, Icon, InputGroup, MenuItem } from "@blueprintjs/core";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Connection,
@@ -32,16 +32,27 @@ const RoutineModuleEditorGraphContext = React.createContext<{
   removeModuleIngredient: (moduleId: string, ingredientId: string) => void,
 } | null>(null);
 
-export function RoutineEditor() {
-  const [routine, setRoutine] = useState<Routine>({
-    name: "New Routine",
-    modules: [],
-  });
+interface RoutineEditorProps {
+  routine: Routine;
+  onChange: (routine: Routine) => void;
+}
 
-  return <div style={{ margin: "0 20px" }}>
-    <H3 style={{ margin: "20px 0" }}>
-      Create New Routine
-    </H3>
+export function RoutineEditor({ routine, onChange }: RoutineEditorProps) {
+  // TODO: We might want to cache `routine` in state and debounce calls up to `onChange`.
+  //       That'll also be required if we want to maintain an undo stack (reordering ingredients causes a lot of changes).
+  // TODO: Mainly that is to improve FlowAutoLayout's behaviour, so we may be able to address it in there instead.
+  const setRoutine = (newValue: Routine | ((routine: Routine) => Routine)) => {
+    if (typeof newValue === 'function') {
+      newValue = newValue(routine);
+    }
+
+    // Cache the value for the next update in the same render.
+    routine = newValue;
+
+    onChange(newValue);
+  };
+
+  return <>
     <FormGroup label="Name">
       <InputGroup value={routine.name} onChange={event => setRoutine(routine => ({
         ...routine,
@@ -51,7 +62,7 @@ export function RoutineEditor() {
     <FormGroup label="Modules">
       <RoutineModuleEditor routine={routine} setRoutine={setRoutine} />
     </FormGroup>
-  </div>;
+  </>;
 }
 
 function RoutineModuleEditor({
@@ -664,7 +675,7 @@ function ModuleNode({
 
   return <div onMouseUp={() => setDragState(null)} onMouseMove={onMouseMove}>
     <div className="react-flow__node-module__row react-flow__node-module__header">
-      <EditableText defaultValue={data.name} onConfirm={value => setModuleName(id, value)} className="nodrag" minWidth={100} />
+      <EditableText value={data.name} onChange={value => setModuleName(id, value)} className="nodrag" minWidth={100} />
       <Icon className={`react-flow__node-module__header__remove nodrag ${Classes.TEXT_MUTED}`} icon="small-cross" onClick={() => removeModule(id)} />
       <Handle type="target" position={targetPosition} isConnectable={isConnectable} />
     </div>
