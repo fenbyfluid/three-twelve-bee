@@ -8,11 +8,16 @@
 // TODO: We may want to split out the raw interface to a lower-level class, then have dedicated
 //       connection classes for normal mode and firmware update mode.
 
+export class ChecksumError extends Error {
+
+}
+
 /**
  * https://metafetish.gitbooks.io/stpihkal/content/hardware/erostek-et312b.html
  */
 export class DeviceConnection extends EventTarget {
   private readonly port: SerialPort;
+  private commandQueue: Promise<any> = Promise.resolve();
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
   private readQueue: Promise<any> = Promise.resolve();
@@ -79,9 +84,10 @@ export class DeviceConnection extends EventTarget {
   }
 
   async peek(address: number): Promise<number> {
-    await this.write([0x3C, (address >> 8) & 0xFF, address & 0xFF], true);
+    const response = await this.writeAndReadResponse(
+      [0x3C, (address >> 8) & 0xFF, address & 0xFF],
+      true, 3, true);
 
-    const response = await this.read(3, true);
     if (response[0] !== 0x22) {
       throw new Error("Wrong response received from read message.");
     }
@@ -104,9 +110,9 @@ export class DeviceConnection extends EventTarget {
       data = [data];
     }
 
-    await this.write([0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...data], true);
-
-    const response = await this.read(1, false);
+    const response = await this.writeAndReadResponse(
+      [0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...data],
+      true, 1, false);
 
     if (response[0] === 0x07) {
       throw new Error("Write rejected, check key setup.");
@@ -213,9 +219,8 @@ export class DeviceConnection extends EventTarget {
   }
 
   private async setupKeys(): Promise<number> {
-    await this.write([0x2F, 0x00], true);
-
-    const response = await this.read(3, true, 1000);
+    const response = await this.writeAndReadResponse([0x2F, 0x00],
+      true, 3, true, 1000);
 
     if (response === null) {
       // Set the key to explicitly 0x00 and try again.
@@ -239,9 +244,17 @@ export class DeviceConnection extends EventTarget {
     return response[1];
   }
 
+  private writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean): Promise<Uint8Array>;
+  private writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean, readTimeout: number): Promise<Uint8Array | null>;
+  private async writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean, readTimeout: number = -1): Promise<Uint8Array | null> {
+    return this.commandQueue = this.commandQueue
+      .then(() => this.write(data, checksumWrite))
+      .then(() => this.read(readLength, checksumRead, readTimeout));
+  }
+
   private read(length: number, checksum: boolean): Promise<Uint8Array>;
   private read(length: number, checksum: boolean, timeout: number): Promise<Uint8Array | null>;
-  private read(length: number, checksum: boolean = false, timeout: number = -1): Promise<Uint8Array | null> {
+  private read(length: number, checksum: boolean, timeout: number = -1): Promise<Uint8Array | null> {
     return this.readQueue = this.readQueue
       .then(() => this.readInternal(length, checksum, timeout));
   }
@@ -274,9 +287,9 @@ export class DeviceConnection extends EventTarget {
       this.readBuffer = this.readBuffer.subarray(length);
     }
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
-    }
+    // if (process.env.NODE_ENV === "development") {
+    //   console.log("read", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    // }
 
     if (checksum) {
       let sum = 0;
@@ -285,7 +298,7 @@ export class DeviceConnection extends EventTarget {
       }
 
       if (bytes[bytes.length - 1] !== sum) {
-        throw new Error("Response checksum was incorrect.");
+        throw new ChecksumError("Response checksum was incorrect.");
       }
     }
 
@@ -295,7 +308,7 @@ export class DeviceConnection extends EventTarget {
   private async buffer(length: number): Promise<void> {
     if (!this.reader) {
       if (!this.port.readable) {
-        throw new Error('Port is not readable');
+        throw new Error("Port is not readable");
       }
 
       this.reader = this.port.readable.getReader();
@@ -389,24 +402,24 @@ export class DeviceConnection extends EventTarget {
   private async writeRaw(buffer: Uint8Array): Promise<void> {
     if (!this.writer) {
       if (!this.port.writable) {
-        throw new Error('Port is not writable');
+        throw new Error("Port is not writable");
       }
 
       this.writer = this.port.writable.getWriter();
     }
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
-    }
+    // if (process.env.NODE_ENV === "development") {
+    //   console.log("write", Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    // }
 
     await this.writer.write(buffer);
   }
 
   private async sync(): Promise<void> {
     for (let i = 0; i < 11; ++i) {
-      await this.write([0x00], false);
+      const response = await this.writeAndReadResponse([0x00],
+        false, 1, false, 100)
 
-      const response = await this.read(1, false, 100);
       if (!response) {
         continue;
       }
