@@ -309,11 +309,11 @@ export function TestResult(props: { suite: TestSuiteTest, results?: InstructionT
   const intent = props.results ? (props.results.passed ? "success" : "danger") : undefined;
   const icon = props.results ? (props.results.passed ? "tick" : "cross") : "time";
   const details = props.results && props.results.results.map(result => {
-    const address = result.address.toString(16).toUpperCase().padStart(4, '0');
-    const initial = (result.initial === undefined) ? "??" : result.initial.toString(16).toUpperCase().padStart(2, '0');
-    const expected = (result.expected === undefined) ? "??" : result.expected.toString(16).toUpperCase().padStart(2, '0');
-    const before = result.before.toString(16).toUpperCase().padStart(2, '0');
-    const after = result.after.toString(16).toUpperCase().padStart(2, '0');
+    const address = result.address.toString(16).toUpperCase().padStart(4, "0");
+    const initial = (result.initial === undefined) ? "??" : result.initial.toString(16).toUpperCase().padStart(2, "0");
+    const expected = (result.expected === undefined) ? "??" : result.expected.toString(16).toUpperCase().padStart(2, "0");
+    const before = result.before.toString(16).toUpperCase().padStart(2, "0");
+    const after = result.after.toString(16).toUpperCase().padStart(2, "0");
 
     return <Callout key={result.address} intent={result.passed ? "success" : "danger"} icon={result.passed ? "tick" : "cross"} style={{ marginTop: 5, marginBottom: 5 }}>
       0x{address} {" "}
@@ -353,7 +353,7 @@ export function InstructionTester(props: { device: DeviceConnection }) {
   const testInfo = TEST_SUITE.map((suite, i) => {
     const results = suiteResults[i];
 
-    return <TestResult key={'test-' + i} suite={suite} results={results} />
+    return <TestResult key={"test-" + i} suite={suite} results={results} />
   });
 
   const runTests = () => {

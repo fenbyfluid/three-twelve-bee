@@ -6,11 +6,11 @@ const FIRMWARE_PATH = __dirname + "/../312-16.upg";
 let firmwareImage: FirmwareImage | null = null;
 
 function isErrorException(error: unknown): error is NodeJS.ErrnoException {
-  if (error === null || !(typeof error === 'object')) {
+  if (error === null || !(typeof error === "object")) {
     return false;
   }
 
-  return error.hasOwnProperty('errno');
+  return error.hasOwnProperty("errno");
 }
 
 try {
@@ -23,7 +23,7 @@ try {
     console.error("firmware image checksum invalid");
   }
 } catch (e) {
-  if (isErrorException(e) && e.code === 'ENOENT') {
+  if (isErrorException(e) && e.code === "ENOENT") {
     console.log("firmware tests wont run as no firmware file found");
   } else {
     console.error(e);
@@ -74,10 +74,10 @@ test("parse eroslink module", () => {
 
   const decodedModule = parsedModule.map(decodeInstruction);
   expect(decodedModule).toStrictEqual([
-    { operation: 'set', address: 0x85, forceHigh: false, value: 0x03 },
-    { operation: 'copy', address: 0x86, values: [ 0x08, 0x52 ] },
-    { operation: 'and', address: 0xB5, value: 0xE3 },
-    { operation: 'or', address: 0xB5, value: 0x08 },
+    { operation: "set", address: 0x85, forceHigh: false, value: 0x03 },
+    { operation: "copy", address: 0x86, values: [ 0x08, 0x52 ] },
+    { operation: "and", address: 0xB5, value: 0xE3 },
+    { operation: "or", address: 0xB5, value: 0x08 },
   ]);
 });
 
@@ -101,15 +101,15 @@ test("simulate instructions", () => {
     memory[0x0085] = 0x03;
   }
 
-  simulateInstruction(memory, { operation: 'set', address: 0xA6, value: 0x08 });
+  simulateInstruction(memory, { operation: "set", address: 0xA6, value: 0x08 });
   expect(memory[0x00A6]).toBe(0x08);
   expect(memory[0x01A6]).toBe(0x08);
 
-  simulateInstruction(memory, { operation: 'set', address: 0xA6, value: 0x52, forceHigh: true });
+  simulateInstruction(memory, { operation: "set", address: 0xA6, value: 0x52, forceHigh: true });
   expect(memory[0x00A6]).toBe(0x08);
   expect(memory[0x01A6]).toBe(0x52);
 
-  simulateInstruction(memory, { operation: 'store', address: 0x00A6 });
+  simulateInstruction(memory, { operation: "store", address: 0x00A6 });
   expect(memory[0x008C]).toBe(0x08);
   expect(memory[0x018C]).toBe(0x52);
 });

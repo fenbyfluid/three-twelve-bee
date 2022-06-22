@@ -112,7 +112,7 @@ export function ConnectionBar(props: ConnectionBarProps) {
     try {
       await connection.open();
     } catch (ex) {
-      setErrorMessage(ex instanceof Error ? ex.message : 'Unknown Error');
+      setErrorMessage(ex instanceof Error ? ex.message : "Unknown Error");
       return;
     }
 

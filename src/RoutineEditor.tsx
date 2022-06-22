@@ -42,7 +42,7 @@ export function RoutineEditor({ routine, onChange }: RoutineEditorProps) {
   //       That'll also be required if we want to maintain an undo stack (reordering ingredients causes a lot of changes).
   // TODO: Mainly that is to improve FlowAutoLayout's behaviour, so we may be able to address it in there instead.
   const setRoutine = (newValue: Routine | ((routine: Routine) => Routine)) => {
-    if (typeof newValue === 'function') {
+    if (typeof newValue === "function") {
       newValue = newValue(routine);
     }
 

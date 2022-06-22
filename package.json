@@ -43,7 +43,13 @@
       "react-app",
       "react-app/jest",
       "plugin:@blueprintjs/recommended"
-    ]
+    ],
+    "rules": {
+      "quotes": [
+        "error",
+        "double"
+      ]
+    }
   },
   "browserslist": {
     "production": [

@@ -75,7 +75,7 @@ function VariableTable(props: VariableTableProps) {
         </td>
     </tr>;
 
-    const flagRows = variable.flags && variable.flags.map(flag => <tr key={variable.address + '-' + flag.mask}>
+    const flagRows = variable.flags && variable.flags.map(flag => <tr key={variable.address + "-" + flag.mask}>
       <td />
       <td colSpan={hasNames ? 2 : 1} style={{ textAlign: "right" }} className={Classes.MONOSPACE_TEXT}>
         <VariableFlagString mask={flag.mask} value={value} className={(props.forcedRedraw === 0) ? Classes.SKELETON : undefined} />
