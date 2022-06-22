@@ -33,7 +33,7 @@ export function App() {
       page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
       break;
     case "controls":
-      page = device && <InteractiveControls device={device} />;
+      page = device && <InteractiveControls connection={device} />;
       break;
     case "designer":
       page = <AdvancedDesigner setBackAction={setBackAction} />;

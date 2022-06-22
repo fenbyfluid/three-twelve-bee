@@ -5,7 +5,7 @@ const FIRMWARE_PATH = __dirname + "/../312-16.upg";
 
 let firmwareImage: FirmwareImage | null = null;
 
-function isErrorException(error: unknown): error is NodeJS.ErrnoException {
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
   if (error === null || !(typeof error === "object")) {
     return false;
   }
@@ -23,7 +23,7 @@ try {
     console.error("firmware image checksum invalid");
   }
 } catch (e) {
-  if (isErrorException(e) && e.code === "ENOENT") {
+  if (isErrnoException(e) && e.code === "ENOENT") {
     console.log("firmware tests wont run as no firmware file found");
   } else {
     console.error(e);

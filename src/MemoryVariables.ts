@@ -59,7 +59,7 @@ const ACTIONS: { [key: number]: string } = {
 };
 
 // Some of these are firmware dependent, the values here are from f002.
-const MODES: { [key: number]: string } = {
+export const MODES: { [key: number]: string } = {
   0x00: "Power On",
   0x01: "Unknown",
   // Main Menu Items
@@ -277,6 +277,36 @@ const GATE_SELECT: FlagInfo[] = [
   { mask: 0b11100000, description: "On Time Source", values: GATE_ON_SOURCE },
 ];
 
+const VALUE_ABS_SOURCES: { [key: number]: string } = {
+  0b00: "Leave value alone, nop",
+  0b01: "Set the value to advanced default for this variable",
+  0b10: "Set the value to the current MA knob value",
+  0b11: "Copy from the other channels value",
+};
+
+const VALUE_TIMER_SOURCES: { [key: number]: string } = {
+  0b00: "Rate is from parameter",
+  0b01: "Rate is from advanced parameter default",
+  0b10: "Rate is from MA value",
+  0b11: "Rate is rate from other channel",
+};
+
+const VALUE_MIN_ACTION: { [key: number]: string } = {
+  0b00: "Don't change min",
+  0b01: "Set min to advanced parameter default",
+  0b10: "Set min to MA value",
+  0b11: "Set min to min of other channel",
+};
+
+const VALUE_SELECT: FlagInfo[] = [
+  { mask: 0b00000011, description: "Timer Selection", values: GATE_TIMERS },
+  { mask: 0b01111100, description: "No-Timer Value Source", values: VALUE_ABS_SOURCES },
+  { mask: 0b00001100, description: "Timer Min Action", values: VALUE_MIN_ACTION },
+  { mask: 0b00010000, description: "Invert Min" },
+  { mask: 0b01100000, description: "Timer Value Source", values: VALUE_TIMER_SOURCES },
+  { mask: 0b10000000, description: "Invert Value" },
+];
+
 const MODULES: { [key: number]: string } = {
   0: "None",
   1: "Initialization",
@@ -434,7 +464,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x40A9, description: "Channel A: Current Intensity Modulation Step" },
   { address: 0x40AA, description: "Channel A: Current Intensity Action at Min", values: ACTION_AT_MIN_MAX },
   { address: 0x40AB, description: "Channel A: Current Intensity Action at Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x40AC, description: "Channel A: Current Intensity Modulation Select" },
+  { address: 0x40AC, description: "Channel A: Current Intensity Modulation Select", flags: VALUE_SELECT },
   { address: 0x40AD, description: "Channel A: Current Intensity Modulation Timer" },
   { address: 0x40AE, description: "Channel A: Current Frequency Modulation Value" },
   { address: 0x40AF, description: "Channel A: Current Frequency Modulation Min" },
@@ -443,7 +473,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x40B2, description: "Channel A: Current Frequency Modulation Step" },
   { address: 0x40B3, description: "Channel A: Current Frequency Modulation Action Min", values: ACTION_AT_MIN_MAX },
   { address: 0x40B4, description: "Channel A: Current Frequency Modulation Action Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x40B5, description: "Channel A: Current Frequency Modulation Select" },
+  { address: 0x40B5, description: "Channel A: Current Frequency Modulation Select", flags: VALUE_SELECT },
   { address: 0x40B6, description: "Channel A: Current Frequency Modulation Timer" },
   { address: 0x40B7, description: "Channel A: Current Width Modulation Value" },
   { address: 0x40B8, description: "Channel A: Current Width Modulation Min" },
@@ -452,7 +482,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x40BB, description: "Channel A: Current Width Modulation Step" },
   { address: 0x40BC, description: "Channel A: Current Width Modulation Action Min", values: ACTION_AT_MIN_MAX },
   { address: 0x40BD, description: "Channel A: Current Width Modulation Action Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x40BE, description: "Channel A: Current Width Modulation Select" },
+  { address: 0x40BE, description: "Channel A: Current Width Modulation Select", flags: VALUE_SELECT },
   { address: 0x40BF, description: "Channel A: Current Width Modulation Timer" },
   // 0x40C0 - 0x417F Scratchpad module data
   { address: 0x4180, description: "Write LCD Parameter" },
@@ -491,7 +521,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x41A9, description: "Channel B: Current Intensity Modulation Step" },
   { address: 0x41AA, description: "Channel B: Current Intensity Action at Min", values: ACTION_AT_MIN_MAX },
   { address: 0x41AB, description: "Channel B: Current Intensity Action at Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x41AC, description: "Channel B: Current Intensity Modulation Select" },
+  { address: 0x41AC, description: "Channel B: Current Intensity Modulation Select", flags: VALUE_SELECT },
   { address: 0x41AD, description: "Channel B: Current Intensity Modulation Timer" },
   { address: 0x41AE, description: "Channel B: Current Frequency Modulation Value" },
   { address: 0x41AF, description: "Channel B: Current Frequency Modulation Min" },
@@ -500,7 +530,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x41B2, description: "Channel B: Current Frequency Modulation Step" },
   { address: 0x41B3, description: "Channel B: Current Frequency Modulation Action Min", values: ACTION_AT_MIN_MAX },
   { address: 0x41B4, description: "Channel B: Current Frequency Modulation Action Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x41B5, description: "Channel B: Current Frequency Modulation Select" },
+  { address: 0x41B5, description: "Channel B: Current Frequency Modulation Select", flags: VALUE_SELECT },
   { address: 0x41B6, description: "Channel B: Current Frequency Modulation Timer" },
   { address: 0x41B7, description: "Channel B: Current Width Modulation Value" },
   { address: 0x41B8, description: "Channel B: Current Width Modulation Min" },
@@ -509,7 +539,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x41BB, description: "Channel B: Current Width Modulation Step" },
   { address: 0x41BC, description: "Channel B: Current Width Modulation Action Min", values: ACTION_AT_MIN_MAX },
   { address: 0x41BD, description: "Channel B: Current Width Modulation Action Max", values: ACTION_AT_MIN_MAX },
-  { address: 0x41BE, description: "Channel B: Current Width Modulation Select" },
+  { address: 0x41BE, description: "Channel B: Current Width Modulation Select", flags: VALUE_SELECT },
   { address: 0x41BF, description: "Channel B: Current Width Modulation Timer" },
   // 0x41C0 - 0x41CF Last 16 MA knob readings used for averaging
   // 0x41D0 - 0x41EF Scratchpad module pointers 0xC0 - 0xDF

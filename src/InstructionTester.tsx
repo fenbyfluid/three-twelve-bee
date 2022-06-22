@@ -1,79 +1,32 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
 import { Button, Callout, Collapse, H3 } from "@blueprintjs/core";
-import { encodeInstruction, Instruction } from "./Module";
-
-async function executeInstructions(device: DeviceConnection, modules: Instruction[][]): Promise<void> {
-  let cursor = 0;
-  for (let i = 0; i <modules.length; ++i) {
-    // Set the module start offset.
-    await device.poke(0x41D0 + i, cursor);
-
-    // Write the instructions to the scratchpad module data.
-    for (let instruction of modules[i]) {
-      const encoded = encodeInstruction(instruction);
-      if ((0x40C0 + cursor + encoded.length) >= 0x417F) {
-        throw new Error("ran out of bytes to write instructions to scratchpad");
-      }
-
-      // We add the terminator to each instruction, in case we're interrupted.
-      await device.poke(0x40C0 + cursor, [...encoded, 0x00]);
-      cursor += encoded.length;
-    }
-
-    // Account for the terminator byte.
-    cursor += 1;
-  }
-
-  // If we didn't write anything, write an empty module so nothing is executed.
-  if (cursor === 0) {
-    // Instruction.
-    await device.poke(0x40C0, 0x00);
-
-    // Module start offset.
-    await device.poke(0x41D0, 0x00);
-  }
-
-  // Get the mode index we can point at the scratchpad.
-  const currentTopMode = await device.peek(0x8008); // EEPROM CurrentTopMode
-  const scratchpadMode = Math.min(Math.max(0x88, currentTopMode + 1), 0x8E); // "User 1" - "User 7"
-
-  // Write the scratchpad module ID as the start module for the selected mode.
-  // This seems to be set in the EEPROM even for the scratchpad modules.
-  await device.poke(0x8018 + (scratchpadMode - 0x88), 0xC0);
-
-  // Set the in-memory high mode to include our newly assigned scratchpad mode.
-  await device.poke(0x41F3, scratchpadMode); // RAM CurrentTopMode
-
-  // Switch to the new scratchpad mode.
-  await device.poke(0x407B, scratchpadMode); // Selected Menu Item
-  await device.poke(0x4070, [0x04, 0x12]); // Exit Menu, Select New Mode
-
-  // Wait some time for the device to execute the commands.
-  return new Promise(resolve => setTimeout(resolve, 18));
-}
+import { Instruction } from "./Module";
+import { DeviceApi } from "./DeviceApi";
 
 type InstructionTest = { address: number, initial?: number, expected?: number };
 type InstructionTestResult = InstructionTest & { passed: boolean, before: number, after: number };
 type InstructionTestTestResult = { passed: boolean, results: InstructionTestResult[] };
 
-async function testInstructions(device: DeviceConnection, modules: Instruction[][], tests: InstructionTest[]): Promise<InstructionTestTestResult> {
+async function testInstructions(connection: DeviceConnection, modules: Instruction[][], tests: InstructionTest[]): Promise<InstructionTestTestResult> {
+  const device = new DeviceApi(connection);
+
   // Execute an empty module to ensure the channel memory is in a clean state.
-  await executeInstructions(device, []);
+  await device.executeInstructions([]);
 
   // Get the initial value for all the interesting memory addresses.
   const beforeState: number[] = new Array(tests.length);
   for (let i = 0; i < tests.length; ++i) {
-    beforeState[i] = await device.peek(0x4000 + tests[i].address);
+    beforeState[i] = await connection.peek(0x4000 + tests[i].address);
   }
 
   // Execute the instructions under test.
-  await executeInstructions(device, modules);
+  await device.executeInstructions(modules);
 
   // Get the current value for all the interesting memory addresses.
   const afterState: number[] = new Array(tests.length);
   for (let i = 0; i < tests.length; ++i) {
-    afterState[i] = await device.peek(0x4000 + tests[i].address);
+    afterState[i] = await connection.peek(0x4000 + tests[i].address);
   }
 
   let suitePassed = true;
