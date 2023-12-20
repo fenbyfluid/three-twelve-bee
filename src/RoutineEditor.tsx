@@ -16,7 +16,7 @@ import "./RoutineEditor.css";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 import { Ingredient, Module, Routine } from "./Routine";
 import { RoutineModuleIngredientEditor } from "./RoutineModuleIngredientEditor";
-import { ItemRenderer, Select2 } from "@blueprintjs/select";
+import { ItemRenderer, Select } from "@blueprintjs/select";
 
 const RoutineModuleEditorGraphContext = React.createContext<{
   setStartPosition: (newPosition: XYPosition) => void,
@@ -625,14 +625,14 @@ function AddIngredientButton({
     addModuleIngredient(moduleId, item);
   };
 
-  return <Select2 items={items} itemRenderer={itemRenderer} onItemSelect={onItemSelect} filterable={false} popoverProps={{
+  return <Select items={items} itemRenderer={itemRenderer} onItemSelect={onItemSelect} filterable={false} popoverProps={{
     hasBackdrop: true,
     matchTargetWidth: true,
   }} popoverContentProps={{
     className: "add-ingredient-menu",
   }}>
     <Button icon="add" minimal={true} small={true} fill={true} className="nodrag" />
-  </Select2>;
+  </Select>;
 }
 
 function ModuleNode({
@@ -656,9 +656,9 @@ function ModuleNode({
     removeModuleIngredient,
   } = context;
 
-  const [dragState, setDragState] = useState<{ id: string, el: HTMLElement } | null>(null);
+  const [dragState, setDragState] = useState<{ id: string, el: Element } | null>(null);
 
-  const onMouseMove = (ev: React.MouseEvent<HTMLElement>) => {
+  const onMouseMove = (ev: React.MouseEvent) => {
     if (dragState === null) {
       return;
     }

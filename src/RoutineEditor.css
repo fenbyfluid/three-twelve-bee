@@ -106,7 +106,7 @@
     padding: 0 3px;
 }
 
-.react-flow__node-module__child__label > div.bp4-popover2-target {
+.react-flow__node-module__child__label > div.bp5-popover-target {
     display: inline-block;
 }
 
@@ -122,11 +122,11 @@
     color: #555;
 }
 
-.react-flow__node-module__child__icon.bp4-icon-drag-handle-vertical {
+.react-flow__node-module__child__icon.bp5-icon-drag-handle-vertical {
     cursor: grab;
 }
 
-.react-flow__node-module__child__icon.bp4-icon-small-cross {
+.react-flow__node-module__child__icon.bp5-icon-small-cross {
     cursor: pointer;
 }
 
@@ -138,12 +138,12 @@
     border-bottom: 1px dotted;
 }
 
-.bp4-popover2.editor-slider-popover .bp4-popover2-content {
+.bp5-popover.editor-slider-popover .bp5-popover-content {
     min-width: 180px;
     max-width: 350px;
     padding: 10px;
 }
 
-.add-ingredient-menu .bp4-menu {
+.add-ingredient-menu .bp5-menu {
     min-width: initial;
 }

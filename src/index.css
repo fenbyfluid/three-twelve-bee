@@ -4,14 +4,12 @@
 @import "~@blueprintjs/core/lib/css/blueprint.css";
 /* noinspection CssInvalidImport */
 @import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
-/* noinspection CssInvalidImport */
-@import "~@blueprintjs/popover2/lib/css/blueprint-popover2.css";
 
-.bp4-navbar-group .bp4-tab {
+.bp5-navbar-group .bp5-tab {
     line-height: 50px;
 }
 
-.bp4-card[aria-disabled="true"] {
+.bp5-card[aria-disabled="true"] {
     cursor: not-allowed;
 }
 
@@ -19,7 +17,7 @@ body {
     margin: 0;
 }
 
-body.bp4-dark {
+body.bp5-dark {
     background-color: #394b59;
 }
 

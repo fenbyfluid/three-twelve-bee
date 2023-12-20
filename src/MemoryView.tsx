@@ -1,4 +1,4 @@
-import { Button, Classes, H3, HTMLTable, Switch, Tab, Tabs } from "@blueprintjs/core";
+import { Button, Classes, H3, HTMLTable, Switch, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
 import React, { HTMLAttributes, useEffect, useRef, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
 import { EEPROM_VARIABLES, RAM_VARIABLES, REGISTER_VARIABLES, VariableInfo } from "./MemoryVariables";
@@ -100,7 +100,7 @@ function VariableTable(props: VariableTableProps) {
     </React.Fragment>;
   });
 
-  return <HTMLTable condensed={true} className="variable-table">
+  return <HTMLTable compact={true} className="variable-table">
     <thead>
       <tr>
         <th>Address</th>
@@ -364,7 +364,7 @@ export function MemoryView(props: MemoryViewProps) {
     <Tabs className="memoryViewTabs" id="memoryViewTabs" large={true} selectedTabId={selectedTab}
           onChange={tab => setSelectedTab(tab.toString())} renderActiveTabPanelOnly={true}>
       <H3>Memory View</H3>
-      <Tabs.Expander />
+      <TabsExpander />
       <Tab id="flash" title="Flash" />
       <Tab id="registers" title="Registers" />
       <Tab id="ram" title="RAM" />

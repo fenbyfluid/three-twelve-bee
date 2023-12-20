@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Classes, ControlGroup, Expander, H3, Icon, Menu, MenuItem } from "@blueprintjs/core";
+import { Button, Classes, ControlGroup, H3, Icon, Menu, MenuItem, TabsExpander } from "@blueprintjs/core";
 import { RoutineEditor } from "./RoutineEditor";
 import { Routine } from "./Routine";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -49,7 +49,7 @@ export function AdvancedDesigner({ setBackAction }: AdvancedDesignerProps) {
       <H3 style={{ marginBottom: 0 }}>
         {selectedRoutine ? `Editing ${selectedRoutine.routine.name}` : "Advanced Designer"}
       </H3>
-      <Expander />
+      <TabsExpander />
       {selectedRoutine ? <ControlGroup>
         <Button intent="danger" onClick={() => {
           if (!selectedRoutine?.id) {

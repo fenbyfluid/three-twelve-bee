@@ -1,8 +1,7 @@
 import { AffectChannelsIngredient, DelayExecIngredient, Ingredient, SetValueIngredient } from "./Routine";
 import React, { useCallback } from "react";
-import { ItemRenderer, Select2 } from "@blueprintjs/select";
-import { MenuItem, Slider } from "@blueprintjs/core";
-import { Popover2 } from "@blueprintjs/popover2";
+import { ItemRenderer, Select } from "@blueprintjs/select";
+import { MenuItem, Popover, Slider } from "@blueprintjs/core";
 
 interface RoutineModuleIngredientEditorProps<T = Ingredient> {
   ingredient: T;
@@ -50,11 +49,11 @@ function EnumParameterEditor<TIngredient>({
   //       a) `TIngredient[property]` must be a union of string constants
   //       b) `values` keys must be exhaustive over `TIngredient[property]`
   //       c) We can use `Select<TIngredient[property]>` instead of `Select<string>`
-  return <Select2 filterable={false} onItemSelect={onItemSelect} itemRenderer={itemRenderer} items={Object.keys(values)} popoverProps={{
+  return <Select filterable={false} onItemSelect={onItemSelect} itemRenderer={itemRenderer} items={Object.keys(values)} popoverProps={{
     hasBackdrop: true,
   }}>
     <span className="text-dropdown">{values[ingredient[property] as unknown as string]}</span>
-  </Select2>;
+  </Select>;
 }
 
 function NumericParameterEditor<TIngredient>({
@@ -72,7 +71,7 @@ function NumericParameterEditor<TIngredient>({
     });
   };
 
-  return <Popover2
+  return <Popover
     popoverClassName="editor-slider-popover"
     placement="bottom-start"
     hasBackdrop={true}
@@ -81,7 +80,7 @@ function NumericParameterEditor<TIngredient>({
     }
   >
     <span className="text-dropdown">{ingredient[property]}{ suffix && ` ${suffix}` }</span>
-  </Popover2>;
+  </Popover>;
 }
 
 function AffectChannelsIngredientEditor({

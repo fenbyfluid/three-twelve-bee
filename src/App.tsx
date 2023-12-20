@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Classes, Expander, Icon, Navbar, Tab, Tabs } from "@blueprintjs/core";
+import { Button, Classes, Icon, Navbar, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
 import { MainMenu } from "./MainMenu";
 import { DeviceConnection } from "./DeviceConnection";
 import { MemoryView } from "./MemoryView";
@@ -75,7 +75,7 @@ export function App() {
 
     <div className="container flex-container" style={{ paddingTop: (currentPage !== "menu") ? 50 : 0 }}>
       <div>{page}</div>
-      <Expander />
+      <TabsExpander />
       <div className={`footer ${Classes.TEXT_SMALL} ${Classes.TEXT_MUTED}`}>
         <p>
           Created with{" "}

@@ -9,7 +9,7 @@
     width: fit-content;
 }
 
-.bp4-dark .channel-control-group-label {
+.bp5-dark .channel-control-group-label {
     background-color: #394b59;
 }
 
@@ -39,18 +39,18 @@
     flex: 0 0 65px;
 }
 
-.channel-control .bp4-control {
+.channel-control .bp5-control {
     margin-bottom: 0;
 }
 
-.channel-control .bp4-control:not(.bp4-align-right) {
+.channel-control .bp5-control:not(.bp5-align-right) {
     padding-left: 20px;
 }
 
-.channel-control .bp4-control .bp4-control-indicator {
+.channel-control .bp5-control .bp5-control-indicator {
     margin-right: 4px;
 }
 
-.channel-control .bp4-control:not(.bp4-align-right) .bp4-control-indicator {
+.channel-control .bp5-control:not(.bp5-align-right) .bp5-control-indicator {
     margin-left: -20px;
 }
