@@ -21,7 +21,7 @@ export class DeviceConnection extends EventTarget {
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
   private readQueue: Promise<any> = Promise.resolve();
-  private pendingRead: Promise<ReadableStreamDefaultReadResult<Uint8Array>> | null = null;
+  private pendingRead: Promise<ReadableStreamReadResult<Uint8Array>> | null = null;
   private readBuffer: Uint8Array | null = null;
   private deviceKey: number | null = null;
 
@@ -315,7 +315,7 @@ export class DeviceConnection extends EventTarget {
     }
 
     while (!this.readBuffer || length > this.readBuffer.byteLength) {
-      let pendingRead: Promise<ReadableStreamDefaultReadResult<Uint8Array>> | null = null;
+      let pendingRead: Promise<ReadableStreamReadResult<Uint8Array>> | null = null;
 
       if (!this.pendingRead) {
         // Read more bytes from the serial port.

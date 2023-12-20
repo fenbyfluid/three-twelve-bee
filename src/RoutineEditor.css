@@ -106,6 +106,10 @@
     padding: 0 3px;
 }
 
+.react-flow__node-module__child__label > div.bp4-popover2-target {
+    display: inline-block;
+}
+
 .react-flow__node-module__child .react-flow__node-module__child__icon {
     visibility: hidden;
 }

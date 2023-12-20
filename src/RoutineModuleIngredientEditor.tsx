@@ -1,6 +1,6 @@
 import { AffectChannelsIngredient, DelayExecIngredient, Ingredient, SetValueIngredient } from "./Routine";
 import React, { useCallback } from "react";
-import { ItemRenderer, Select } from "@blueprintjs/select";
+import { ItemRenderer, Select2 } from "@blueprintjs/select";
 import { MenuItem, Slider } from "@blueprintjs/core";
 import { Popover2 } from "@blueprintjs/popover2";
 
@@ -50,11 +50,11 @@ function EnumParameterEditor<TIngredient>({
   //       a) `TIngredient[property]` must be a union of string constants
   //       b) `values` keys must be exhaustive over `TIngredient[property]`
   //       c) We can use `Select<TIngredient[property]>` instead of `Select<string>`
-  return <Select filterable={false} onItemSelect={onItemSelect} itemRenderer={itemRenderer} items={Object.keys(values)} popoverProps={{
+  return <Select2 filterable={false} onItemSelect={onItemSelect} itemRenderer={itemRenderer} items={Object.keys(values)} popoverProps={{
     hasBackdrop: true,
   }}>
     <span className="text-dropdown">{values[ingredient[property] as unknown as string]}</span>
-  </Select>;
+  </Select2>;
 }
 
 function NumericParameterEditor<TIngredient>({
