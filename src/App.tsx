@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
 import { Button, Classes, Icon, Navbar, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
-import { MainMenu } from "./MainMenu";
-import { DeviceConnection } from "./DeviceConnection";
-import { MemoryView } from "./MemoryView";
-import { FirmwareUpdate } from "./FirmwareUpdate";
-import { InteractiveControls } from "./InteractiveControls";
-import { ProgramManager } from "./ProgramManager";
-import { InstructionTester } from "./InstructionTester";
-import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
+import React, { useEffect, useState } from "react";
 import { AdvancedDesigner } from "./AdvancedDesigner";
+import { DeviceConnection } from "./DeviceConnection";
+import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
+import { FirmwareUpdate } from "./FirmwareUpdate";
+import { InstructionTester } from "./InstructionTester";
+import { InteractiveControls } from "./InteractiveControls";
+import { MainMenu } from "./MainMenu";
+import { MemoryView } from "./MemoryView";
+import { ProgramManager } from "./ProgramManager";
 
 export function App() {
   const [currentPage, setPage] = useState("menu");

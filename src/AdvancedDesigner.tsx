@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
 import { Button, Classes, ControlGroup, H3, Icon, Menu, MenuItem, TabsExpander } from "@blueprintjs/core";
-import { RoutineEditor } from "./RoutineEditor";
-import { Routine } from "./Routine";
 import { useLiveQuery } from "dexie-react-hooks";
+import React, { useEffect, useState } from "react";
 import { db } from "./Database";
+import { Routine } from "./Routine";
+import { RoutineEditor } from "./RoutineEditor";
 
 interface AdvancedDesignerProps {
   setBackAction: React.Dispatch<React.SetStateAction<(() => void) | null>>;

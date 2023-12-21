@@ -1,9 +1,9 @@
-import { DeviceConnection } from "./DeviceConnection";
 import { Card, Checkbox, H3, H5, H6, Slider, Tag } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./InteractiveControls.css";
-import { MODES } from "./MemoryVariables";
 import { DeviceApi } from "./DeviceApi";
+import { DeviceConnection } from "./DeviceConnection";
+import { MODES } from "./MemoryVariables";
 
 interface ChannelControlProps {
   label: string,

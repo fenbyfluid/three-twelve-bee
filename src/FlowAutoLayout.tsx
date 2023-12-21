@@ -1,19 +1,20 @@
-import { Elements, isNode, useStoreState, useZoomPanHelper, XYPosition } from "react-flow-renderer";
-import React, { useCallback, useEffect } from "react";
-import dagre from "dagre";
 import { Button } from "@blueprintjs/core";
+import dagre from "dagre";
+import React, { useCallback, useEffect } from "react";
+import { useEdges, useNodes, useReactFlow, XYPosition } from "react-flow-renderer";
 
 interface FlowAutoLayoutProps {
-  elements: Elements,
   setNodePosition: (id: string, newPosition: XYPosition) => void,
 }
 
-export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProps) {
-  const zoomPanHelper = useZoomPanHelper();
-  const { nodes, edges } = useStoreState(({ nodes, edges }) => ({ nodes, edges }));
+export function FlowAutoLayout({ setNodePosition }: FlowAutoLayoutProps) {
+  const { fitView } = useReactFlow();
+  const nodes = useNodes();
+  const edges = useEdges();
 
   useEffect(() => {
-    const needsLayout = elements.some(el => isNode(el) && el.id !== "start" && el.position.x === 0);
+    // TODO: Use useNodesInitialized as well after updating to v11
+    const needsLayout = nodes.some(node => node.id !== "start" && node.position.x === 0);
     if (!needsLayout) {
       return;
     }
@@ -33,11 +34,11 @@ export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProp
     const done = new Set<string>();
 
     for (const node of nodes) {
-      if (!node.__rf.width || !node.__rf.height) {
+      if (!node.width || !node.height) {
         continue;
       }
 
-      graph.setNode(node.id, { width: node.__rf.width, height: node.__rf.height });
+      graph.setNode(node.id, { width: node.width, height: node.height });
 
       done.add(node.id);
     }
@@ -62,23 +63,21 @@ export function FlowAutoLayout({ elements, setNodePosition }: FlowAutoLayoutProp
     }
 
     setTimeout(() => {
-      zoomPanHelper.fitView({ padding: 0.1 });
+      fitView({ padding: 0.1 });
     }, 200);
-  }, [zoomPanHelper, nodes, edges, elements, setNodePosition]);
+  }, [fitView, nodes, edges, setNodePosition]);
 
   useEffect(() => {
-    zoomPanHelper.fitView({ padding: 0.1 });
-  }, [zoomPanHelper]);
+    setTimeout(() => {
+      fitView({ padding: 0.1 });
+    }, 200);
+  }, [fitView]);
 
   const resetLayout = useCallback(() => {
-    for (const element of elements) {
-      if (!isNode(element)) {
-        continue;
-      }
-
-      setNodePosition(element.id, { x: 0, y: 0 });
+    for (const node of nodes) {
+      setNodePosition(node.id, { x: 0, y: 0 });
     }
-  }, [elements, setNodePosition]);
+  }, [nodes, setNodePosition]);
 
   return <Button
     minimal={true}

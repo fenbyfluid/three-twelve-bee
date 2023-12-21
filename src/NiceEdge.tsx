@@ -1,5 +1,5 @@
-import { ConnectionLineComponentProps, EdgeProps, getBezierPath, getMarkerEnd } from "react-flow-renderer";
 import React from "react";
+import { ConnectionLineComponentProps, EdgeProps, getBezierPath } from "react-flow-renderer";
 
 function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, targetY: number) {
   const distanceX = Math.abs(sourceX - targetX);
@@ -34,9 +34,7 @@ export function NiceEdge(props: EdgeProps) {
     edgePath = getNiceBezierPath(props.sourceX, props.targetX, props.sourceY, props.targetY);
   }
 
-  const markerEnd = getMarkerEnd(props.arrowHeadType, props.markerEndId);
-
   return (
-    <path id={props.id} style={props.style} className="react-flow__edge-path" d={edgePath} markerEnd={markerEnd} />
+    <path id={props.id} style={props.style} className="react-flow__edge-path" d={edgePath} markerEnd={props.markerEnd} />
   );
 }

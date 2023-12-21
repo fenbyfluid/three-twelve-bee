@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactFlow, { ArrowHeadType, Elements, isNode, Position, XYPosition } from "react-flow-renderer";
+import { Checkbox, Classes } from "@blueprintjs/core";
 import {
   ChannelIngredient,
   Ingredient,
@@ -10,15 +9,26 @@ import {
   SetValueIngredient,
   TimeGotoIngredient,
 } from "eroslink-file";
-import { Checkbox, Classes } from "@blueprintjs/core";
+import React, { useCallback, useEffect, useMemo } from "react";
+import ReactFlow, {
+  Edge,
+  MarkerType,
+  Node,
+  Position,
+  useEdgesState,
+  useNodesState,
+  XYPosition,
+} from "react-flow-renderer";
 import { FlowAutoLayout } from "./FlowAutoLayout";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 
 export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
-  const [elements, setElements] = useState<Elements>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<{ label: any }>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<undefined>([]);
 
   useEffect(() => {
-    setElements([]);
+    setNodes([]);
+    setEdges([])
 
     if (!props.routine) {
       return;
@@ -32,15 +42,17 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
     };
 
     const edgeDefaults = {
-      arrowHeadType: ArrowHeadType.ArrowClosed,
+      markerEnd: { type: MarkerType.ArrowClosed },
     };
 
-    const newElements: Elements = [];
+    const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
+
     for (const ingredient of props.routine.ingredients) {
       const id = ingredient.instanceName!;
       const backgroundColor = colorToCssString(ingredient.useDefaultBackgroundColor ? 0xFFFFFFFF : ingredient.backgroundColor);
 
-      newElements.push({
+      newNodes.push({
         id,
         data: { label: <IngredientLabel ingredient={ingredient} /> },
         ...nodeDefaults,
@@ -48,14 +60,14 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       });
 
       if (id === "1") {
-        newElements.push({
+        newNodes.push({
           id: "start",
           type: "input",
           data: { label: "Start" },
           ...nodeDefaults,
         });
 
-        newElements.push({
+        newEdges.push({
           id: `estart-${id}`,
           source: "start",
           target: id,
@@ -66,7 +78,7 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       if (ingredient.alsoDoIngredientName && ingredient.alsoDoIngredientName !== "<Nothing Else>") {
         const otherId = ingredient.alsoDoIngredientName;
 
-        newElements.push({
+        newEdges.push({
           id: `e${id}-${otherId}`,
           source: id,
           target: otherId,
@@ -78,7 +90,7 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
         const otherId = ingredient.andThen!;
 
         if (!otherId.startsWith("<")) {
-          newElements.push({
+          newEdges.push({
             id: `e${id}-${otherId}`,
             source: id,
             target: otherId,
@@ -93,7 +105,7 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
         const triggers = ingredient.toArray()?.filter(isString) || [];
 
         for (const trigger of triggers) {
-          newElements.push({
+          newEdges.push({
             id: `e${id}-${trigger}`,
             source: id,
             target: trigger,
@@ -104,23 +116,26 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       }
     }
 
-    setElements(newElements);
-  }, [props]);
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [props, setNodes, setEdges]);
 
   const setNodePosition = useCallback((id: string, newPosition: XYPosition) => {
-    setElements(elements => elements.map(element => {
-      if (!isNode(element) || element.id !== id) {
-        return element;
+    setNodes(nodes => nodes.map(node => {
+      if (node.id !== id) {
+        return node;
       }
 
       return {
-        ...element,
+        ...node,
         position: newPosition,
       };
     }));
-  }, []);
+  }, [setNodes]);
 
-  const edgeTypes = useMemo(() => ({ default: NiceEdge }), []);
+  const edgeTypes = useMemo(() => ({
+    default: NiceEdge,
+  }), []);
 
   return <div style={{
     width: "100%",
@@ -129,7 +144,8 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
     boxShadow: "0 0 0 1px rgb(16 22 26 / 10%), 0 0 0 rgb(16 22 26 / 0%), 0 1px 1px rgb(16 22 26 / 20%)",
   }}>
     <ReactFlow
-      elements={elements}
+      nodes={nodes}
+      edges={edges}
       zoomOnDoubleClick={false}
       zoomOnScroll={false}
       panOnScroll={true}
@@ -139,8 +155,10 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
       connectionLineComponent={NiceConnectionLine}
       elementsSelectable={false}
       nodesConnectable={false}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
     >
-      <FlowAutoLayout elements={elements} setNodePosition={setNodePosition} />
+      <FlowAutoLayout setNodePosition={setNodePosition} />
     </ReactFlow>
   </div>;
 }

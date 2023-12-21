@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
 import { Button, Callout, Icon } from "@blueprintjs/core";
+import React, { useEffect, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
 
 interface ConnectionBarProps {

@@ -1,7 +1,7 @@
-import { AffectChannelsIngredient, DelayExecIngredient, Ingredient, SetValueIngredient } from "./Routine";
-import React, { useCallback } from "react";
-import { ItemRenderer, Select } from "@blueprintjs/select";
 import { MenuItem, Popover, Slider } from "@blueprintjs/core";
+import { ItemRenderer, Select } from "@blueprintjs/select";
+import React, { useCallback } from "react";
+import { AffectChannelsIngredient, DelayExecIngredient, Ingredient, SetValueIngredient } from "./Routine";
 
 interface RoutineModuleIngredientEditorProps<T = Ingredient> {
   ingredient: T;

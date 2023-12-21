@@ -1,8 +1,8 @@
+import { Classes, FocusStyleManager } from "@blueprintjs/core";
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import { App } from "./App";
-import { Classes, FocusStyleManager } from "@blueprintjs/core";
 
 const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
 

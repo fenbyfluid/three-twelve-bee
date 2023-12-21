@@ -1,6 +1,6 @@
-import { DeviceConnection } from "./DeviceConnection";
 import { Button, Callout, FileInput, FormGroup, InputGroup } from "@blueprintjs/core";
 import React, { useState } from "react";
+import { DeviceConnection } from "./DeviceConnection";
 import { FirmwareImage } from "./FirmwareImage";
 
 export function FirmwareUpdate() {

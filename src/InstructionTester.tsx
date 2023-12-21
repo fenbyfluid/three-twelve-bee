@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { DeviceConnection } from "./DeviceConnection";
 import { Button, Callout, Collapse, H3 } from "@blueprintjs/core";
-import { Instruction } from "./Module";
+import React, { useEffect, useMemo, useState } from "react";
 import { DeviceApi } from "./DeviceApi";
+import { DeviceConnection } from "./DeviceConnection";
+import { Instruction } from "./Module";
 
 type InstructionTest = { address: number, initial?: number, expected?: number };
 type InstructionTestResult = InstructionTest & { passed: boolean, before: number, after: number };

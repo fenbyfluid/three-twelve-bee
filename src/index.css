@@ -48,3 +48,8 @@ body.bp5-dark {
         flex-direction: row;
     }
 }
+
+/* We have this attribution link in the global footer. */
+.react-flow__attribution {
+    display: none;
+}

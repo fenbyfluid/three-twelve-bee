@@ -1,14 +1,16 @@
 import { Button, Classes, EditableText, FormGroup, Icon, InputGroup, MenuItem } from "@blueprintjs/core";
+import { ItemRenderer, Select } from "@blueprintjs/select";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Connection,
   Edge,
-  Elements,
   Handle,
+  Node,
   NodeProps,
   Position,
   ReactFlowProvider,
-  useUpdateNodeInternals,
+  useEdgesState,
+  useNodesState,
   XYPosition,
 } from "react-flow-renderer";
 import { FlowAutoLayout } from "./FlowAutoLayout";
@@ -16,7 +18,6 @@ import "./RoutineEditor.css";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 import { Ingredient, Module, Routine } from "./Routine";
 import { RoutineModuleIngredientEditor } from "./RoutineModuleIngredientEditor";
-import { ItemRenderer, Select } from "@blueprintjs/select";
 
 const RoutineModuleEditorGraphContext = React.createContext<{
   setStartPosition: (newPosition: XYPosition) => void,
@@ -361,20 +362,25 @@ function RoutineModuleEditor({
 }
 
 function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
-  const elements = useMemo(() => {
-    const elements = [];
+  const [nodes, setNodes, onNodesChange] = useNodesState<Module | undefined>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<undefined>([]);
 
-    elements.push({
+  useEffect(() => {
+    const nodes: Node<Module | undefined>[] = [];
+    const edges: Edge<undefined>[] = [];
+
+    nodes.push({
       id: "start",
       type: "start",
       position: routine.startPosition || { x: 0, y: 0 },
       selectable: false,
+      data: undefined,
     });
 
     if (routine.modules.length > 0) {
       const firstModuleId = routine.modules[0].id;
 
-      elements.push({
+      edges.push({
         id: `start-${firstModuleId}`,
         source: "start",
         target: firstModuleId,
@@ -382,7 +388,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     }
 
     for (const module of routine.modules) {
-      elements.push({
+      nodes.push({
         id: module.id,
         type: "module",
         position: module.position || { x: 0, y: 0 },
@@ -391,7 +397,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
 
       for (const ingredient of module.ingredients) {
         if ("target" in ingredient && ingredient.target !== null) {
-          elements.push({
+          edges.push({
             id: `${module.id}.${ingredient.id}-${ingredient.target}`,
             source: module.id,
             sourceHandle: ingredient.id,
@@ -401,24 +407,9 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
       }
     }
 
-    return elements;
-  }, [routine]);
-
-  const updateNodeInternals = useUpdateNodeInternals();
-
-  useEffect(() => {
-    for (const element of elements) {
-      if (element.type !== "module") {
-        continue;
-      }
-
-      // Update every module node in case the ingredients were modified.
-      // We're not expecting the graphs to be huge, so the performance should be fine.
-      // If we need to reduce the overhead here, we should be able to add an
-      // epoch to each Module that is updated when they're modified.
-      updateNodeInternals(element.id);
-    }
-  }, [elements, updateNodeInternals]);
+    setNodes(nodes);
+    setEdges(edges);
+  }, [routine, setNodes, setEdges]);
 
   const context = useContext(RoutineModuleEditorGraphContext);
   if (!context) {
@@ -515,32 +506,30 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     addModule(position, connection.source, connection.sourceHandle);
   }, [addModule]);
 
-  const onElementsRemove = useCallback((removedElements: Elements) => {
-    for (const element of removedElements) {
-      if (element.type === "module") {
-        removeModule(element.id);
-
-        continue;
+  const onNodesDelete = useCallback((removedNodes: Node<unknown>[]) => {
+    for (const node of removedNodes) {
+      if (node.type === "module") {
+        removeModule(node.id);
       }
+    }
+  }, [removeModule]);
 
-      if (!("source" in element)) {
-        continue;
-      }
-
-      if (element.source === "start") {
+  const onEdgesDelete = useCallback((removedEdges: Edge<unknown>[]) => {
+    for (const edge of removedEdges) {
+      if (edge.source === "start") {
         // We don't support removing the start edge.
         // setStartModule(null);
 
         continue;
       }
 
-      if (!element.sourceHandle) {
+      if (!edge.sourceHandle) {
         throw new Error("missing source handle id");
       }
 
-      setModuleIngredientTarget(element.source, element.sourceHandle, null);
+      setModuleIngredientTarget(edge.source, edge.sourceHandle, null);
     }
-  }, [removeModule, setModuleIngredientTarget]);
+  }, [setModuleIngredientTarget]);
 
   const setNodePosition = useCallback((id: string, newPosition: XYPosition) => {
     if (id === "start") {
@@ -550,8 +539,14 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     }
   }, [setStartPosition, setModulePosition]);
 
-  const nodeTypes = useMemo(() => ({ start: StartNode, module: ModuleNode }), []);
-  const edgeTypes = useMemo(() => ({ default: NiceEdge }), []);
+  const nodeTypes = useMemo(() => ({
+    start: StartNode,
+    module: ModuleNode,
+  }), []);
+
+  const edgeTypes = useMemo(() => ({
+    default: NiceEdge,
+  }), []);
 
   return <div style={{
     width: "100%",
@@ -560,7 +555,8 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     boxShadow: "0 0 0 1px rgb(16 22 26 / 10%), 0 0 0 rgb(16 22 26 / 0%), 0 1px 1px rgb(16 22 26 / 20%)",
   }}>
     <ReactFlow
-      elements={elements}
+      nodes={nodes}
+      edges={edges}
       zoomOnDoubleClick={false}
       zoomOnScroll={false}
       panOnScroll={true}
@@ -572,15 +568,21 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
       onConnectStart={onConnectStart}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
-      onElementsRemove={onElementsRemove}
       onNodeDragStop={(event, node) => setNodePosition(node.id, node.position)}
+      onNodesChange={onNodesChange}
+      onNodesDelete={onNodesDelete}
+      onEdgesChange={onEdgesChange}
+      onEdgesDelete={onEdgesDelete}
     >
-      <FlowAutoLayout elements={elements} setNodePosition={setNodePosition} />
+      <FlowAutoLayout setNodePosition={setNodePosition} />
     </ReactFlow>
   </div>;
 }
 
 function StartNode({ isConnectable, sourcePosition = Position.Right }: NodeProps<undefined>) {
+  // TODO: This is getting overridden from somewhere since updating to v10
+  sourcePosition = Position.Right;
+
   return <>
     Start
     <Handle type="source" position={sourcePosition} isConnectable={isConnectable} />
@@ -646,6 +648,10 @@ function ModuleNode({
   if (!context) {
     throw new Error("missing context");
   }
+
+  // TODO: These are getting overridden from somewhere since updating to v10
+  targetPosition = Position.Left;
+  sourcePosition = Position.Right;
 
   const {
     setModuleName,

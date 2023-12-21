@@ -1,7 +1,7 @@
-import React, { useState } from "react";
 import { FileInput, FormGroup, H3, HTMLSelect } from "@blueprintjs/core";
-import { EroslinkRoutineGraph } from "./EroslinkRoutineGraph";
 import { DesignerFile, Routine } from "eroslink-file";
+import React, { useState } from "react";
+import { EroslinkRoutineGraph } from "./EroslinkRoutineGraph";
 
 export function EroslinkRoutineViewer() {
   const [fileError, setFileError] = useState<string | null>(null);

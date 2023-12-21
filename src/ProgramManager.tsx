@@ -1,6 +1,6 @@
+import { H3 } from "@blueprintjs/core";
 import React, { useEffect } from "react";
 import { DeviceConnection } from "./DeviceConnection";
-import { H3 } from "@blueprintjs/core";
 import { decodeInstruction, parseModuleAsync } from "./Module";
 
 async function LoadModule(device: DeviceConnection, moduleIdx: number): Promise<void> {

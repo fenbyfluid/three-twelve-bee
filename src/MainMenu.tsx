@@ -1,8 +1,8 @@
-import React from "react";
-import logo from "./logo.png";
 import { Card, Classes } from "@blueprintjs/core";
-import { DeviceConnection } from "./DeviceConnection";
+import React from "react";
 import { ConnectionBar } from "./ConnectionBar";
+import { DeviceConnection } from "./DeviceConnection";
+import logo from "./logo.png";
 
 interface MenuCardProps {
   disabled?: boolean,
