@@ -12,7 +12,8 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
   XYPosition,
-} from "react-flow-renderer";
+} from "reactflow";
+import "reactflow/dist/style.css";
 import { FlowAutoLayout } from "./FlowAutoLayout";
 import "./RoutineEditor.css";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
@@ -373,7 +374,6 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
       id: "start",
       type: "start",
       position: routine.startPosition || { x: 0, y: 0 },
-      selectable: false,
       data: undefined,
     });
 
@@ -384,6 +384,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
         id: `start-${firstModuleId}`,
         source: "start",
         target: firstModuleId,
+        deletable: false,
       });
     }
 
@@ -427,7 +428,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
 
   const createNodeOnConnectEnd = useRef<{ source: string, sourceHandle: string | null } | null>(null);
 
-  const onConnectStart = useCallback((event: React.MouseEvent, { nodeId, handleId, handleType }) => {
+  const onConnectStart = useCallback((event: React.MouseEvent | React.TouchEvent, { nodeId, handleId, handleType }) => {
     if (nodeId === null || handleType !== "source") {
       return;
     }
@@ -471,7 +472,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     setModuleIngredientTarget(connection.source, connection.sourceHandle, connection.target);
   }, [setStartModule, setModuleIngredientTarget]);
 
-  const onConnectEnd = useCallback((event: MouseEvent) => {
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
     if (createNodeOnConnectEnd.current === null) {
       return;
     }
@@ -495,9 +496,10 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
 
     // We should be using the state instead, connectionPosition, but will that re-render us?
     // Would it even be correct, given we've had to modify the position calculation node?
+    const positionSource = ("touches" in event) ? event.touches[0] : event;
     const position = {
-      x: (event.clientX - containerBounds.left) / containerScale,
-      y: ((event.clientY - containerBounds.top) / containerScale) - handleTopOffset,
+      x: ((positionSource.clientX) - containerBounds.left) / containerScale,
+      y: ((positionSource.clientY - containerBounds.top) / containerScale) - handleTopOffset,
     };
 
     const connection = createNodeOnConnectEnd.current;
@@ -568,7 +570,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
       onConnectStart={onConnectStart}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
-      onNodeDragStop={(event, node) => setNodePosition(node.id, node.position)}
+      onNodeDragStop={(event, node) => node && setNodePosition(node.id, node.position)}
       onNodesChange={onNodesChange}
       onNodesDelete={onNodesDelete}
       onEdgesChange={onEdgesChange}

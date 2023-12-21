@@ -1,7 +1,7 @@
 import { Button } from "@blueprintjs/core";
 import dagre from "dagre";
 import React, { useCallback, useEffect } from "react";
-import { useEdges, useNodes, useReactFlow, XYPosition } from "react-flow-renderer";
+import { useEdges, useNodes, useNodesInitialized, useReactFlow, XYPosition } from "reactflow";
 
 interface FlowAutoLayoutProps {
   setNodePosition: (id: string, newPosition: XYPosition) => void,
@@ -9,12 +9,16 @@ interface FlowAutoLayoutProps {
 
 export function FlowAutoLayout({ setNodePosition }: FlowAutoLayoutProps) {
   const { fitView } = useReactFlow();
+  const nodesInitialized = useNodesInitialized();
   const nodes = useNodes();
   const edges = useEdges();
 
   useEffect(() => {
-    // TODO: Use useNodesInitialized as well after updating to v11
-    const needsLayout = nodes.some(node => node.id !== "start" && node.position.x === 0);
+    if (!nodesInitialized) {
+      return;
+    }
+
+    const needsLayout = nodes.some(node => node.id !== "start" && node.position.x === 0 && node.position.y === 0);
     if (!needsLayout) {
       return;
     }
@@ -65,7 +69,7 @@ export function FlowAutoLayout({ setNodePosition }: FlowAutoLayoutProps) {
     setTimeout(() => {
       fitView({ padding: 0.1 });
     }, 200);
-  }, [fitView, nodes, edges, setNodePosition]);
+  }, [fitView, nodesInitialized, nodes, edges, setNodePosition]);
 
   useEffect(() => {
     setTimeout(() => {

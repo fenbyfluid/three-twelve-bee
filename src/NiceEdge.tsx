@@ -1,5 +1,5 @@
 import React from "react";
-import { ConnectionLineComponentProps, EdgeProps, getBezierPath } from "react-flow-renderer";
+import { ConnectionLineComponentProps, EdgeProps, getBezierPath, BaseEdge } from "reactflow";
 
 function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, targetY: number) {
   const distanceX = Math.abs(sourceX - targetX);
@@ -13,12 +13,19 @@ function getNiceBezierPath(sourceX: number, targetX: number, sourceY: number, ta
 
 export function NiceConnectionLine(props: ConnectionLineComponentProps) {
   let edgePath;
-  if (props.targetX > props.sourceX) {
-    edgePath = getBezierPath(props);
-  } else if (props.sourcePosition === "right") {
-    edgePath = getNiceBezierPath(props.sourceX, props.targetX, props.sourceY, props.targetY);
+  if (props.toX > props.fromX) {
+    [edgePath] = getBezierPath({
+      sourceX: props.fromX,
+      sourceY: props.fromY,
+      sourcePosition: props.fromPosition,
+      targetX: props.toX,
+      targetY: props.toY,
+      targetPosition: props.toPosition,
+    });
+  } else if (props.fromPosition === "right") {
+    edgePath = getNiceBezierPath(props.fromX, props.toX, props.fromY, props.toY);
   } else {
-    edgePath = getNiceBezierPath(props.targetX, props.sourceX, props.targetY, props.sourceY);
+    edgePath = getNiceBezierPath(props.toX, props.fromX, props.toY, props.fromY);
   }
 
   return (
@@ -29,12 +36,12 @@ export function NiceConnectionLine(props: ConnectionLineComponentProps) {
 export function NiceEdge(props: EdgeProps) {
   let edgePath;
   if (props.targetX > props.sourceX) {
-    edgePath = getBezierPath(props);
+    [edgePath] = getBezierPath(props);
   } else {
     edgePath = getNiceBezierPath(props.sourceX, props.targetX, props.sourceY, props.targetY);
   }
 
   return (
-    <path id={props.id} style={props.style} className="react-flow__edge-path" d={edgePath} markerEnd={props.markerEnd} />
+    <BaseEdge path={edgePath} {...props} />
   );
 }

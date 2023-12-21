@@ -18,7 +18,8 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
   XYPosition,
-} from "react-flow-renderer";
+} from "reactflow";
+import "reactflow/dist/style.css";
 import { FlowAutoLayout } from "./FlowAutoLayout";
 import { NiceConnectionLine, NiceEdge } from "./NiceEdge";
 
