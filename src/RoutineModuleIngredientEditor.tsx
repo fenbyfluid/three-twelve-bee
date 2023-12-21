@@ -79,7 +79,9 @@ function NumericParameterEditor<TIngredient>({
       <Slider labelRenderer={false} max={max} min={min} value={ingredient[property] as unknown as number} onChange={onSliderChanged} />
     }
   >
-    <span className="text-dropdown">{ingredient[property]}{ suffix && ` ${suffix}` }</span>
+    <span className="text-dropdown">
+      <>{ingredient[property]}{ suffix && ` ${suffix}` }</>
+    </span>
   </Popover>;
 }
 

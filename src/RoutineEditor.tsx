@@ -2,11 +2,15 @@ import { Button, Classes, EditableText, FormGroup, Icon, InputGroup, MenuItem } 
 import { ItemRenderer, Select } from "@blueprintjs/select";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
-  Connection,
   Edge,
   Handle,
   Node,
   NodeProps,
+  OnConnect,
+  OnConnectEnd,
+  OnConnectStart,
+  OnEdgesDelete,
+  OnNodesDelete,
   Position,
   ReactFlowProvider,
   useEdgesState,
@@ -428,7 +432,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
 
   const createNodeOnConnectEnd = useRef<{ source: string, sourceHandle: string | null } | null>(null);
 
-  const onConnectStart = useCallback((event: React.MouseEvent | React.TouchEvent, { nodeId, handleId, handleType }) => {
+  const onConnectStart: OnConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {
     if (nodeId === null || handleType !== "source") {
       return;
     }
@@ -448,7 +452,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     }
   }, []);
 
-  const onConnect = useCallback((connection: Edge | Connection) => {
+  const onConnect: OnConnect = useCallback((connection) => {
     createNodeOnConnectEnd.current = null;
 
     if (connection.source === null || connection.target === null) {
@@ -472,7 +476,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     setModuleIngredientTarget(connection.source, connection.sourceHandle, connection.target);
   }, [setStartModule, setModuleIngredientTarget]);
 
-  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
+  const onConnectEnd: OnConnectEnd = useCallback((event) => {
     if (createNodeOnConnectEnd.current === null) {
       return;
     }
@@ -508,7 +512,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     addModule(position, connection.source, connection.sourceHandle);
   }, [addModule]);
 
-  const onNodesDelete = useCallback((removedNodes: Node<unknown>[]) => {
+  const onNodesDelete: OnNodesDelete = useCallback((removedNodes) => {
     for (const node of removedNodes) {
       if (node.type === "module") {
         removeModule(node.id);
@@ -516,7 +520,7 @@ function RoutineModuleEditorGraph({ routine }: { routine: Routine }) {
     }
   }, [removeModule]);
 
-  const onEdgesDelete = useCallback((removedEdges: Edge<unknown>[]) => {
+  const onEdgesDelete: OnEdgesDelete = useCallback((removedEdges) => {
     for (const edge of removedEdges) {
       if (edge.source === "start") {
         // We don't support removing the start edge.

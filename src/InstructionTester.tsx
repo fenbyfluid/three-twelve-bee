@@ -1,5 +1,5 @@
 import { Button, Callout, Collapse, H3 } from "@blueprintjs/core";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DeviceApi } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
 import { Instruction } from "./Module";
@@ -69,7 +69,7 @@ async function testInstructions(connection: DeviceConnection, modules: Instructi
 
 type TestSuiteTest = { name: string, instructions: Instruction[][], tests: InstructionTest[] };
 
-async function runTestSuite(device: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[], cancelHolder?: { cancelled: boolean }) {
+async function runTestSuite(device: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[], cancelledRef?: React.MutableRefObject<boolean>) {
   setSuiteResults(new Array(suite.length));
 
   for (let i = 0; i < suite.length; ++i) {
@@ -77,7 +77,7 @@ async function runTestSuite(device: DeviceConnection, setSuiteResults: React.Dis
 
     console.log(suite[i].name, suite[i].instructions, results);
 
-    if (cancelHolder && cancelHolder.cancelled) {
+    if (cancelledRef && cancelledRef.current) {
       return;
     }
 
@@ -293,15 +293,15 @@ export function InstructionTester(props: { device: DeviceConnection }) {
     }
   }, [suiteResults.length]);
 
-  const cancelHolder = useMemo(() => ({
-    cancelled: false,
-  }), []);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
+    cancelledRef.current = false;
+
     return () => {
-      cancelHolder.cancelled = true;
+      cancelledRef.current = true;
     };
-  }, [cancelHolder]);
+  }, [cancelledRef]);
 
   const testInfo = TEST_SUITE.map((suite, i) => {
     const results = suiteResults[i];
@@ -312,9 +312,9 @@ export function InstructionTester(props: { device: DeviceConnection }) {
   const runTests = () => {
     setTestsRunning(true);
 
-    runTestSuite(props.device, setSuiteResults, TEST_SUITE, cancelHolder)
+    runTestSuite(props.device, setSuiteResults, TEST_SUITE, cancelledRef)
       .then(() => {
-        if (!cancelHolder.cancelled) {
+        if (!cancelledRef.current) {
           setTestsRunning(false);
         }
       });
