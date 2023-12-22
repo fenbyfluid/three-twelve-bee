@@ -87,7 +87,7 @@ export function App() {
         </p>
         {(process.env.REACT_APP_GITHUB_REPO ?? "").length > 0 && <p>
           {/* eslint-disable-next-line */}
-            <a target="_blank" rel="noopener" href={`https://github.com/${process.env.REACT_APP_GITHUB_REPO}`}>Fork me on GitHub</a>
+            <a target="_blank" rel="noopener" href={`https://github.com/${process.env.REACT_APP_GITHUB_REPO}`}>Contribute on GitHub</a>
         </p>}
       </div>
     </div>

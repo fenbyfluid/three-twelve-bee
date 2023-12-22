@@ -1,4 +1,4 @@
-import { Card, Classes } from "@blueprintjs/core";
+import { Callout, Card, Classes } from "@blueprintjs/core";
 import React from "react";
 import { ConnectionBar } from "./ConnectionBar";
 import { DeviceConnection } from "./DeviceConnection";
@@ -92,5 +92,13 @@ export function MainMenu(props: MainMenuProps) {
         ErosLink Viewer
       </MenuCard>
     </div>}
+    <div style={{ padding: "0 10px", margin: "20px 0", textAlign: "initial" }}>
+      <Callout intent="warning" icon="warning-sign">
+        <span style={{ fontWeight: "bold" }}>
+          Three Twelve Bee is in development and is largely in an experimental state.
+        </span> It is currently a playground working towards developing a functional replacement for ErosLink, but it
+        is not there yet. The firmware updater works great, but the rest is primarily development tools at the moment.
+      </Callout>
+    </div>
   </div>;
 }
