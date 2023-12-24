@@ -1,36 +1,46 @@
 import { Card, Checkbox, H3, H5, H6, Slider, Tag } from "@blueprintjs/core";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./InteractiveControls.css";
-import { DeviceApi } from "./DeviceApi";
+import { DeviceApi, GateSelectFlags, SourceSelection, TimerSelection, ValueSelectFlags } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
 import { MODES } from "./MemoryVariables";
 
 interface ChannelControlProps {
   label: string,
   value?: number | undefined, // TODO: make required
+  min?: number,
+  invert?: boolean,
   multiAdjust?: boolean,
   source?: "Effect" | "Tempo" | "Depth" | "Freq" | "Width" | "Pace",
   sourceChecked?: boolean,
 }
 
 function ChannelControl(props: ChannelControlProps) {
+  const minValue = props.min ?? 0;
+  const maxValue = 255;
+  const boundedValue = Math.min(Math.max(minValue, props.value ?? 0), maxValue);
+  const displayValue = props.invert ? (maxValue - (boundedValue - minValue)) : boundedValue;
+
   return <div className="channel-control">
     <span>{props.label}</span>
-    <Slider max={0xFF} labelRenderer={false} value={props.value} onChange={() => {/* TODO */}} />
-    {props.multiAdjust !== undefined ? <Checkbox label="MA" checked={props.multiAdjust} /> : <span />}
-    {props.source ? <Checkbox label={props.source} checked={props.sourceChecked} /> : <span />}
+    <Slider min={minValue} max={maxValue} labelRenderer={false} value={displayValue} disabled={true} />
+    {props.multiAdjust !== undefined ? <Checkbox label="MA" checked={props.multiAdjust} disabled={true} /> : <span />}
+    {props.source ? <Checkbox label={props.source} checked={props.sourceChecked} disabled={true} /> : <span />}
   </div>
 }
 
 interface ChannelControlsProps {
-  device: DeviceConnection
+  device: DeviceApi
   channel: "A" | "B",
   splitMode?: string,
 }
 
 function ChannelControls(props: ChannelControlsProps) {
-  const channelOffset = props.channel === "A" ? 0 : 0x100;
-  const gateSelect = useDeviceValue(props.device, 0x409A + channelOffset) ?? 0;
+  const channel = props.channel === "A" ? props.device.channelA : props.device.channelB;
+  const gateSelect = usePolledGetter(channel.getGateSelect) ?? new GateSelectFlags(0);
+  const intensitySelect = usePolledGetter(channel.intensity.getSelect) ?? new ValueSelectFlags(0);
+  const frequencySelect = usePolledGetter(channel.frequency.getSelect) ?? new ValueSelectFlags(0);
+  const widthSelect = usePolledGetter(channel.width.getSelect) ?? new ValueSelectFlags(0);
 
   return <div style={{ flex: 1, [props.channel === "A" ? "paddingRight": "paddingLeft"]: 10 }}>
     <H5 style={{ padding: "0 20px" }}>
@@ -39,29 +49,29 @@ function ChannelControls(props: ChannelControlsProps) {
     </H5>
     <Card className="channel-control-group">
       <H6 className="channel-control-group-label">Timing</H6>
-      <ChannelControl label="On" value={useDeviceValue(props.device, 0x4098 + channelOffset)} multiAdjust={(gateSelect & 0b11100000) === 0b01000000} source="Effect" sourceChecked={(gateSelect & 0b11100000) === 0b00100000} />
-      <ChannelControl label="Off" value={useDeviceValue(props.device, 0x4099 + channelOffset)} multiAdjust={(gateSelect & 0b00011100) === 0b00001000} source="Tempo" sourceChecked={(gateSelect & 0b00011100) === 0b00000100} />
+      <ChannelControl label="On" value={usePolledGetter(channel.getGateOnTime)} multiAdjust={gateSelect.onSource === SourceSelection.MultiAdjust} source="Effect" sourceChecked={gateSelect.onSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Off" value={usePolledGetter(channel.getGateOffTime)} multiAdjust={gateSelect.offSource === SourceSelection.MultiAdjust} source="Tempo" sourceChecked={gateSelect.offSource === SourceSelection.AdvancedParameter} />
     </Card>
     <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Intensity</H6>
-      <ChannelControl label="Val" value={useDeviceValue(props.device, 0x40A5 + channelOffset)} />
-      <ChannelControl label="Min" value={useDeviceValue(props.device, 0x40A6 + channelOffset)} source="Depth" sourceChecked={false} />
-      <ChannelControl label="Max" value={useDeviceValue(props.device, 0x40A7 + channelOffset)} />
-      <ChannelControl label="Rate" value={useDeviceValue(props.device, 0x40A8 + channelOffset)} multiAdjust={false} source="Tempo" sourceChecked={false} />
+      <H6 className="channel-control-group-label">Level</H6>
+      <ChannelControl label="Val" min={127} value={usePolledGetter(channel.intensity.getValue)} />
+      <ChannelControl label="Min" min={127} value={usePolledGetter(channel.intensity.getMin)} source="Depth" sourceChecked={intensitySelect.timerSelection !== TimerSelection.None && intensitySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Max" min={127} value={usePolledGetter(channel.intensity.getMax)} />
+      <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.intensity.getRate)} multiAdjust={intensitySelect.rateSource === SourceSelection.MultiAdjust} source="Tempo" sourceChecked={intensitySelect.rateSource === SourceSelection.AdvancedParameter} />
     </Card>
     <Card className="channel-control-group">
       <H6 className="channel-control-group-label">Frequency</H6>
-      <ChannelControl label="Val" multiAdjust={false} source="Freq" sourceChecked={false} />
-      <ChannelControl label="Min" />
-      <ChannelControl label="Max" multiAdjust={false} source="Freq" sourceChecked={false} />
-      <ChannelControl label="Rate" multiAdjust={false} source="Effect" sourceChecked={false} />
+      <ChannelControl label="Val" min={8} invert={true} value={usePolledGetter(channel.frequency.getValue)} multiAdjust={frequencySelect.timerSelection === TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.MultiAdjust} source="Freq" sourceChecked={frequencySelect.timerSelection === TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Min" min={8} invert={true} value={usePolledGetter(channel.frequency.getMax)} />
+      <ChannelControl label="Max" min={8} invert={true} value={usePolledGetter(channel.frequency.getMin)} multiAdjust={frequencySelect.timerSelection !== TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.MultiAdjust} source="Freq" sourceChecked={frequencySelect.timerSelection !== TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.frequency.getRate)} multiAdjust={frequencySelect.rateSource === SourceSelection.MultiAdjust} source="Effect" sourceChecked={frequencySelect.rateSource === SourceSelection.AdvancedParameter} />
     </Card>
     <Card className="channel-control-group">
       <H6 className="channel-control-group-label">Width</H6>
-      <ChannelControl label="Val" source="Width" sourceChecked={false} />
-      <ChannelControl label="Min" source="Width" sourceChecked={false} />
-      <ChannelControl label="Max" />
-      <ChannelControl label="Rate" multiAdjust={false} source="Pace" sourceChecked={false} />
+      <ChannelControl label="Val" min={70} value={usePolledGetter(channel.width.getValue)} source="Width" sourceChecked={widthSelect.timerSelection === TimerSelection.None && widthSelect.valOrMinSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Min" min={70} value={usePolledGetter(channel.width.getMin)} source="Width" sourceChecked={widthSelect.timerSelection !== TimerSelection.None && widthSelect.valOrMinSource === SourceSelection.AdvancedParameter} />
+      <ChannelControl label="Max" min={70} value={usePolledGetter(channel.width.getMax)} />
+      <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.width.getRate)} multiAdjust={widthSelect.rateSource === SourceSelection.MultiAdjust} source="Pace" sourceChecked={widthSelect.rateSource === SourceSelection.AdvancedParameter} />
     </Card>
   </div>
 }
@@ -109,18 +119,10 @@ function usePolledGetter<T>(getter: (() => Promise<T>) | false): T | undefined {
   return cachedValue;
 }
 
-function useDeviceValue(device: DeviceConnection, address: number | false): number | undefined {
-  const callback = useCallback(() => address !== false ? device.peek(address) : Promise.resolve(undefined), [device, address]);
-  return usePolledGetter(address !== false && callback);
-}
-
 export function InteractiveControls({ connection }: { connection: DeviceConnection }) {
   const device = useMemo(() => new DeviceApi(connection), [connection]);
-  const currentMode = usePolledGetter(useCallback(() => device.getCurrentMode(), [device]));
-  const getSplitModes = useCallback(() => device.getSplitModes(), [device]);
-  const [splitModeA, splitModeB] = usePolledGetter(currentMode === 0x7F && getSplitModes) ?? [undefined, undefined];
-
-  console.log(currentMode, splitModeA, splitModeB);
+  const currentMode = usePolledGetter(device.getCurrentMode);
+  const [splitModeA, splitModeB] = usePolledGetter(currentMode === 0x7F && device.getSplitModes) ?? [undefined, undefined];
 
   // useEffect(() => {
   //   (async () => {
@@ -144,8 +146,8 @@ export function InteractiveControls({ connection }: { connection: DeviceConnecti
       {currentMode !== undefined && <Tag minimal={true} large={true} style={{ float: "right" }}>{MODES[currentMode] ?? currentMode}</Tag>}
     </H3>
     <div style={style}>
-      <ChannelControls device={connection} channel="A" splitMode={splitModeA !== undefined ? MODES[splitModeA] : undefined} />
-      <ChannelControls device={connection} channel="B" splitMode={splitModeB !== undefined ? MODES[splitModeB] : undefined} />
+      <ChannelControls device={device} channel="A" splitMode={splitModeA !== undefined ? MODES[splitModeA] : undefined} />
+      <ChannelControls device={device} channel="B" splitMode={splitModeB !== undefined ? MODES[splitModeB] : undefined} />
     </div>
   </div>;
 }

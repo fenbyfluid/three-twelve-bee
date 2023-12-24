@@ -8,6 +8,8 @@
 // TODO: We may want to split out the raw interface to a lower-level class, then have dedicated
 //       connection classes for normal mode and firmware update mode.
 
+// TODO: Implement a periodic sync if no bytes have been received recently, timeout connection.
+
 export class ChecksumError extends Error {
 
 }
@@ -365,11 +367,11 @@ export class DeviceConnection extends EventTarget {
     }
   }
 
-  private async flush(window: number = 1000): Promise<void> {
+  private async flush(): Promise<void> {
     this.readBuffer = null;
 
     while (true) {
-      const bytes = await this.read(1, false, window);
+      const bytes = await this.read(1, false, 1000);
       if (bytes === null) {
         break;
       }

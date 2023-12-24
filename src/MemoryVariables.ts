@@ -298,12 +298,12 @@ const VALUE_MIN_ACTION: { [key: number]: string } = {
   0b11: "Set min to min of other channel",
 };
 
-const VALUE_SELECT: FlagInfo[] = [
+const  VALUE_SELECT: FlagInfo[] = [
   { mask: 0b00000011, description: "Timer Selection", values: GATE_TIMERS },
   { mask: 0b01111100, description: "No-Timer Value Source", values: VALUE_ABS_SOURCES },
-  { mask: 0b00001100, description: "Timer Min Action", values: VALUE_MIN_ACTION },
+  { mask: 0b00001100, description: "Timer Min Source", values: VALUE_MIN_ACTION },
   { mask: 0b00010000, description: "Invert Min" },
-  { mask: 0b01100000, description: "Timer Value Source", values: VALUE_TIMER_SOURCES },
+  { mask: 0b01100000, description: "Timer Rate Source", values: VALUE_TIMER_SOURCES },
   { mask: 0b10000000, description: "Invert Value" },
 ];
 

@@ -1,3 +1,4 @@
+import { RawIngredient } from "eroslink-file";
 import { FirmwareImage } from "./FirmwareImage";
 import { decodeInstruction, encodeInstruction, parseModule, simulateInstruction } from "./Module";
 
@@ -112,4 +113,33 @@ test("simulate instructions", () => {
   simulateInstruction(memory, { operation: "store", address: 0x00A6 });
   expect(memory[0x008C]).toBe(0x08);
   expect(memory[0x018C]).toBe(0x52);
+});
+
+test("parse interactive init module", () => {
+  const rawIngredient = new RawIngredient();
+  rawIngredient.rawBytesString = "0x85 0x03   0x86 01  0x9a 0x02   0xac 0x01   0xb5 0x01   0xbe 0x01";
+
+  const module = rawIngredient.toArray();
+  expect(module).not.toBeNull();
+  expect(module!.some(a => typeof a !== "number")).toBe(false);
+
+  const parsedModule = Array.from(parseModule(module as number[]));
+  expect(parsedModule).toStrictEqual([
+    [ 0x85, 0x03 ],
+    [ 0x86, 0x01 ],
+    [ 0x9A, 0x02 ],
+    [ 0xAC, 0x01 ],
+    [ 0xB5, 0x01 ],
+    [ 0xBE, 0x01 ],
+  ]);
+
+  const decodedModule = parsedModule.map(decodeInstruction);
+  expect(decodedModule).toStrictEqual([
+    { operation: "set", address: 0x85, forceHigh: false, value: 0x03 },
+    { operation: "set", address: 0x86, forceHigh: false, value: 0x01 },
+    { operation: "set", address: 0x9A, forceHigh: false, value: 0x02 },
+    { operation: "set", address: 0xAC, forceHigh: false, value: 0x01 },
+    { operation: "set", address: 0xB5, forceHigh: false, value: 0x01 },
+    { operation: "set", address: 0xBE, forceHigh: false, value: 0x01 },
+  ]);
 });
