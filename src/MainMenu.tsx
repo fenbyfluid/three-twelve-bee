@@ -100,6 +100,9 @@ export function MainMenu(props: MainMenuProps) {
         onClick={() => props.onClick && props.onClick("firmware")}>
         Firmware Update
       </MenuCard>
+      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("settings")}>
+        Device Settings
+      </MenuCard>
     </div>
     {props.devMode && <div style={{ ...listStyle, height: 75 }}>
         <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("tester")}>
@@ -107,6 +110,9 @@ export function MainMenu(props: MainMenuProps) {
         </MenuCard>
         <MenuCard onClick={() => props.onClick && props.onClick("viewer")}>
             ErosLink Viewer
+        </MenuCard>
+        <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("controls-legacy")}>
+            ErosLink Controls
         </MenuCard>
         <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("memory")}>
             Memory View

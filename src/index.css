@@ -53,3 +53,8 @@ body.bp5-dark {
 .react-flow__attribution {
     display: none;
 }
+
+/* Make segmented control buttons equal size. */
+.bp5-segmented-control.bp5-fill > .bp5-button {
+    flex-basis: 0;
+}

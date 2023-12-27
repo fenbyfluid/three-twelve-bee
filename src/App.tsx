@@ -1,6 +1,7 @@
 import { Button, Classes, Icon, Navbar, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
 import React, { useEffect, useMemo, useState } from "react";
 import { AdvancedDesigner } from "./AdvancedDesigner";
+import { DeviceSettings } from "./DeviceSettings";
 import { DeviceApi } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
 import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
@@ -50,8 +51,11 @@ export function App() {
     case "menu":
       page = <MainMenu onClick={setPage} connection={connection} setConnection={setConnection} device={device} devMode={devMode} setDevMode={setDevMode} />;
       break;
-    case "controls":
+    case "controls-legacy":
       page = device && <InteractiveControls device={device} />;
+      break;
+    case "settings":
+      page = device && <DeviceSettings device={device} />;
       break;
     case "designer":
       page = <AdvancedDesigner setBackAction={setBackAction} />;

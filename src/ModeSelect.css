@@ -1,0 +1,5 @@
+.bp5-popover-content .mode-select .bp5-menu {
+    overflow-y: auto;
+    max-height: 300px;
+    min-width: unset;
+}
