@@ -1,6 +1,7 @@
 import { Callout, Card, Classes } from "@blueprintjs/core";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ConnectionBar } from "./ConnectionBar";
+import { DeviceApi } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
 import logo from "./logo.png";
 
@@ -30,20 +31,33 @@ function MenuCard(props: MenuCardProps) {
   }
 
   return <Card interactive={!props.disabled}
-               aria-disabled={props.disabled}
-               elevation={props.disabled ? 1 : 2}
-               onClick={!props.disabled ? props.onClick : undefined}
-               style={style}
-               className={classes.join(" ")}>{props.children}</Card>;
+    aria-disabled={props.disabled}
+    elevation={props.disabled ? 1 : 2}
+    onClick={!props.disabled ? props.onClick : undefined}
+    style={style}
+    className={classes.join(" ")}>{props.children}</Card>;
 }
 
 interface MainMenuProps {
-  device: DeviceConnection | null;
-  setDevice: React.Dispatch<React.SetStateAction<DeviceConnection | null>>;
+  connection: DeviceConnection | null;
+  setConnection: React.Dispatch<React.SetStateAction<DeviceConnection | null>>;
+  device: DeviceApi | null;
   onClick?: (id: string) => void;
+  devMode: boolean,
+  setDevMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function MainMenu(props: MainMenuProps) {
+  const [logoClicks, setLogoClicks] = useState(0);
+
+  const setDevMode = props.setDevMode;
+  useEffect(() => {
+    if (logoClicks >= 5) {
+      setDevMode(enabled => !enabled);
+      setLogoClicks(0);
+    }
+  }, [logoClicks, setDevMode]);
+
   const logoWidth = 256;
 
   const logoStyle: React.CSSProperties = {
@@ -61,9 +75,14 @@ export function MainMenu(props: MainMenuProps) {
   };
 
   return <div style={{ textAlign: "center" }}>
-    <img src={logo} alt="Three Twelve Bee Logo" width={logoWidth} height={logoWidth / 2} style={logoStyle} />
+    <img
+      src={logo} alt="Three Twelve Bee Logo"
+      width={logoWidth} height={logoWidth / 2}
+      style={logoStyle}
+      onClick={() => setLogoClicks(n => n + 1)}
+    />
     <div style={{ padding: "0 10px", textAlign: "initial" }}>
-      <ConnectionBar device={props.device} setDevice={props.setDevice} />
+      <ConnectionBar connection={props.connection} setConnection={props.setConnection} />
     </div>
     <div style={{ ...listStyle, height: 125 }}>
       <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("controls")}>
@@ -74,23 +93,24 @@ export function MainMenu(props: MainMenuProps) {
       </MenuCard>
     </div>
     <div style={{ ...listStyle, height: 100 }}>
-      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("programs")}>
+      <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("programs")}>
         Manage User Programs
       </MenuCard>
-      <MenuCard disabled={props.device !== null || !navigator.serial} onClick={() => props.onClick && props.onClick("firmware")}>
+      <MenuCard disabled={props.connection !== null || !navigator.serial}
+        onClick={() => props.onClick && props.onClick("firmware")}>
         Firmware Update
       </MenuCard>
-      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("memory")}>
-        Memory View
-      </MenuCard>
     </div>
-    {(process.env.NODE_ENV === "development") && <div style={{ ...listStyle, height: 75 }}>
-      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("tester")}>
-        Instruction Tester
-      </MenuCard>
-      <MenuCard onClick={() => props.onClick && props.onClick("viewer")}>
-        ErosLink Viewer
-      </MenuCard>
+    {props.devMode && <div style={{ ...listStyle, height: 75 }}>
+        <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("tester")}>
+            Instruction Tester
+        </MenuCard>
+        <MenuCard onClick={() => props.onClick && props.onClick("viewer")}>
+            ErosLink Viewer
+        </MenuCard>
+        <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("memory")}>
+            Memory View
+        </MenuCard>
     </div>}
     <div style={{ padding: "0 10px", margin: "20px 0", textAlign: "initial" }}>
       <Callout intent="warning" icon="warning-sign">

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from "react";
 import { DeviceConnection } from "./DeviceConnection";
 
 interface ConnectionBarProps {
-  device: DeviceConnection | null;
-  setDevice: React.Dispatch<React.SetStateAction<DeviceConnection | null>>;
+  connection: DeviceConnection | null;
+  setConnection: React.Dispatch<React.SetStateAction<DeviceConnection | null>>;
 }
 
 export function ConnectionBar(props: ConnectionBarProps) {
@@ -18,10 +18,10 @@ export function ConnectionBar(props: ConnectionBarProps) {
   }, [connecting]);
 
   useEffect(() => {
-    if (props.device || errorMessage) {
+    if (props.connection || errorMessage) {
       setConnecting(false);
     }
-  }, [props.device, errorMessage]);
+  }, [props.connection, errorMessage]);
 
   const style: React.CSSProperties = {
     display: "flex",
@@ -51,15 +51,15 @@ export function ConnectionBar(props: ConnectionBarProps) {
     </Callout>;
   }
 
-  if (props.device) {
+  if (props.connection) {
     const disconnect = async function disconnect() {
-      const device = props.device;
+      const device = props.connection;
 
       if (device) {
         await device.close();
       }
 
-      props.setDevice((prevConnection) => {
+      props.setConnection((prevConnection) => {
         return prevConnection === device ? null : prevConnection;
       });
     };
@@ -104,7 +104,7 @@ export function ConnectionBar(props: ConnectionBarProps) {
     const connection = new DeviceConnection(port);
 
     connection.addEventListener("close", () => {
-      props.setDevice((prevConnection) => {
+      props.setConnection((prevConnection) => {
         return prevConnection === connection ? null : prevConnection;
       });
     });
@@ -116,7 +116,7 @@ export function ConnectionBar(props: ConnectionBarProps) {
       return;
     }
 
-    props.setDevice(connection);
+    props.setConnection(connection);
   };
 
   if (errorMessage) {

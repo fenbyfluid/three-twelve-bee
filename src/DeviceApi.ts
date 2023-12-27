@@ -1,4 +1,4 @@
-import { DeviceConnection } from "./DeviceConnection";
+import { useEffect, useState } from "react";
 import { encodeInstruction, Instruction } from "./Module";
 
 export enum TimerSelection {
@@ -107,33 +107,127 @@ export class Channel {
   public readonly setGateSelect = async (flags: GateSelectFlags): Promise<void> => this.connection.poke(this.baseAddress + 0x9A, flags.toValue());
 }
 
+export enum Mode {
+  Waves = 0x76,
+  Stroke,
+  Climb,
+  Combo,
+  Intense,
+  Rhythm,
+  Audio1,
+  Audio2,
+  Audio3,
+  Split,
+  Random1,
+  Random2,
+  Toggle,
+  Orgasm,
+  Torment,
+  Phase1,
+  Phase2,
+  Phase3,
+  User1,
+  User2,
+  User3,
+  User4,
+  User5,
+  User6,
+  User7,
+}
+
+export namespace Mode {
+  export function getDisplayName(mode: Mode): string | undefined {
+    return Mode[mode]?.replace(/^(\D*)(\d*)$/, "$1 $2");
+  }
+
+  export function getAsValues() {
+    const values = Object.values(Mode).filter(value => typeof value === "number") as Mode[];
+
+    return values.map(mode => ({ key: Mode[mode]!, label: Mode.getDisplayName(mode)!, value: mode }));
+  }
+}
+
+export enum PowerLevel {
+  Low = 1,
+  Normal,
+  High,
+}
+
+export class Settings {
+  private readonly connection: DeviceConnection;
+  private readonly baseAddress: number;
+
+  public constructor(connection: DeviceConnection, baseAddress: number) {
+    this.connection = connection;
+    this.baseAddress = baseAddress;
+  }
+
+  public readonly getTopMode = async (): Promise<Mode> => this.connection.peek(this.baseAddress);
+  public readonly setTopMode = async (mode: Mode): Promise<void> => this.connection.poke(this.baseAddress, mode);
+
+  public readonly getPowerLevel = async (): Promise<PowerLevel> => this.connection.peek(this.baseAddress + 1);
+  public readonly setPowerLevel = async (powerLevel: PowerLevel): Promise<void> => this.connection.poke(this.baseAddress + 1, powerLevel);
+
+  public readonly getSplitModeA = async (): Promise<Mode> => this.connection.peek(this.baseAddress + 2);
+  public readonly setSplitModeA = async (mode: Mode): Promise<void> => this.connection.poke(this.baseAddress + 2, mode);
+  public readonly getSplitModeB = async (): Promise<Mode> => this.connection.peek(this.baseAddress + 3);
+  public readonly setSplitModeB = async (mode: Mode): Promise<void> => this.connection.poke(this.baseAddress + 3, mode);
+
+  public readonly getFavouriteMode = async (): Promise<Mode> => this.connection.peek(this.baseAddress + 4);
+  public readonly setFavouriteMode = async (mode: Mode): Promise<void> => this.connection.poke(this.baseAddress + 4, mode);
+
+  public readonly getRampLevelParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 5);
+  public readonly setRampLevelParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 5, value);
+  public readonly getRampTimeParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 6);
+  public readonly setRampTimeParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 6, value);
+  public readonly getDepthParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 7);
+  public readonly setDepthParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 7, value);
+  public readonly getTempoParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 8);
+  public readonly setTempoParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 8, value);
+  public readonly getFrequencyParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 9);
+  public readonly setFrequencyParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 9, value);
+  public readonly getEffectParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 10);
+  public readonly setEffectParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 10, value);
+  public readonly getWidthParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 11);
+  public readonly setWidthParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 11, value);
+  public readonly getPaceParameter = async (): Promise<number> => this.connection.peek(this.baseAddress + 12);
+  public readonly setPaceParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 12, value);
+}
+
+export interface DeviceConnection {
+  peek(address: number): Promise<number>;
+  poke(address: number, data: number | number[]): Promise<void>;
+}
+
 export class DeviceApi {
   private readonly connection: DeviceConnection;
 
   public readonly channelA: Channel;
   public readonly channelB: Channel;
 
+  public readonly currentSettings: Settings;
+  public readonly savedSettings: Settings;
+
   public constructor(connection: DeviceConnection) {
     this.connection = connection;
 
     this.channelA = new Channel(connection, 0x4000);
     this.channelB = new Channel(connection, 0x4100);
+
+    this.currentSettings = new Settings(connection, 0x41F3);
+    this.savedSettings = new Settings(connection, 0x8008);
   }
 
-  public readonly getCurrentMode = async (): Promise<number> => this.connection.peek(0x407B);
-
-  public readonly switchToMode = async (mode: number): Promise<void> => {
+  public readonly getCurrentMode = async (): Promise<Mode> => this.connection.peek(0x407B);
+  public readonly switchToMode = async (mode: Mode): Promise<void> => {
     await this.connection.poke(0x407B, mode); // Selected Menu Item
     await this.connection.poke(0x4070, [0x04, 0x12]); // Exit Menu, Select New Mode
 
-    // Wait some time for the this.connection to execute the commands.
-    await new Promise(resolve => setTimeout(resolve, 18));
+    // Wait some time for the device to execute the commands.
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
   };
 
-  public readonly getSplitModes = async (): Promise<[number, number]> => [
-    await this.connection.peek(0x41F5),
-    await this.connection.peek(0x41F6),
-  ];
+  public readonly getBatteryLevel = async (): Promise<number> => this.connection.peek(0x4203);
 
   public readonly executeInstructions = async (modules: Instruction[][]): Promise<void> => {
     let cursor = 0;
@@ -180,4 +274,47 @@ export class DeviceApi {
     // Switch to the new scratchpad mode.
     await this.switchToMode(scratchpadMode);
   };
+}
+
+export function usePolledGetter<T>(getter: (() => Promise<T>) | false): T | undefined {
+  const [cachedValue, setCachedValue] = useState<T | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (getter !== false) {
+      (async () => {
+        while (!cancelled) {
+          const value = await getter();
+          if (cancelled) {
+            break;
+          }
+
+          setCachedValue(oldValue => {
+            if (Array.isArray(value) && Array.isArray(oldValue)) {
+              if (value.length === oldValue.length) {
+                for (let i = 0; i < value.length; ++i) {
+                  if (value[i] !== oldValue[i]) {
+                    return value;
+                  }
+                }
+
+                return oldValue;
+              }
+            }
+
+            return value;
+          });
+        }
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+
+      setCachedValue(undefined);
+    };
+  }, [getter]);
+
+  return cachedValue;
 }

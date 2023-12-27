@@ -1,9 +1,15 @@
 import { Card, Checkbox, H3, H5, H6, Slider, Tag } from "@blueprintjs/core";
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import "./InteractiveControls.css";
-import { DeviceApi, GateSelectFlags, SourceSelection, TimerSelection, ValueSelectFlags } from "./DeviceApi";
-import { DeviceConnection } from "./DeviceConnection";
-import { MODES } from "./MemoryVariables";
+import {
+  DeviceApi,
+  GateSelectFlags,
+  Mode,
+  SourceSelection,
+  TimerSelection,
+  usePolledGetter,
+  ValueSelectFlags,
+} from "./DeviceApi";
 
 interface ChannelControlProps {
   label: string,
@@ -76,63 +82,12 @@ function ChannelControls(props: ChannelControlsProps) {
   </div>
 }
 
-function usePolledGetter<T>(getter: (() => Promise<T>) | false): T | undefined {
-  const [cachedValue, setCachedValue] = useState<T | undefined>(undefined);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (getter !== false) {
-      (async () => {
-        while (!cancelled) {
-          const value = await getter();
-          if (cancelled) {
-            break;
-          }
-
-          setCachedValue(oldValue => {
-            if (Array.isArray(value) && Array.isArray(oldValue)) {
-              if (value.length === oldValue.length) {
-                for (let i = 0; i < value.length; ++i) {
-                  if (value[i] !== oldValue[i]) {
-                    return value;
-                  }
-                }
-
-                return oldValue;
-              }
-            }
-
-            return value;
-          });
-        }
-      })();
-    }
-
-    return () => {
-      cancelled = true;
-
-      setCachedValue(undefined);
-    };
-  }, [getter]);
-
-  return cachedValue;
-}
-
-export function InteractiveControls({ connection }: { connection: DeviceConnection }) {
-  const device = useMemo(() => new DeviceApi(connection), [connection]);
+export function InteractiveControls({ device }: { device: DeviceApi }) {
   const currentMode = usePolledGetter(device.getCurrentMode);
-  const [splitModeA, splitModeB] = usePolledGetter(currentMode === 0x7F && device.getSplitModes) ?? [undefined, undefined];
-
-  // useEffect(() => {
-  //   (async () => {
-  //     await device.poke(0x407B, 0);
-  //     await new Promise(resolve => setTimeout(resolve, 18));
-  //     await device.poke(0x4070, 0x4);
-  //     await new Promise(resolve => setTimeout(resolve, 18));
-  //     await device.poke(0x4070, 0x10);
-  //   })();
-  // }, [device]);
+  const [splitModeA, splitModeB] = usePolledGetter(currentMode === Mode.Split && (async () => [
+    await device.currentSettings.getSplitModeA(),
+    await device.currentSettings.getSplitModeB(),
+  ])) ?? [undefined, undefined];
 
   const style: React.CSSProperties = {
     display: "flex",
@@ -143,11 +98,13 @@ export function InteractiveControls({ connection }: { connection: DeviceConnecti
   return <div>
     <H3 style={{ margin: 20 }}>
       Interactive Controls
-      {currentMode !== undefined && <Tag minimal={true} large={true} style={{ float: "right" }}>{MODES[currentMode] ?? currentMode}</Tag>}
+      {currentMode !== undefined && <Tag minimal={true} large={true} style={{ float: "right" }}>{
+        Mode.getDisplayName(currentMode) ?? currentMode
+      }</Tag>}
     </H3>
     <div style={style}>
-      <ChannelControls device={device} channel="A" splitMode={splitModeA !== undefined ? MODES[splitModeA] : undefined} />
-      <ChannelControls device={device} channel="B" splitMode={splitModeB !== undefined ? MODES[splitModeB] : undefined} />
+      <ChannelControls device={device} channel="A" splitMode={splitModeA !== undefined ? Mode.getDisplayName(splitModeA) : undefined} />
+      <ChannelControls device={device} channel="B" splitMode={splitModeB !== undefined ? Mode.getDisplayName(splitModeB) : undefined} />
     </div>
   </div>;
 }

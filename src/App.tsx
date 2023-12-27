@@ -1,6 +1,7 @@
 import { Button, Classes, Icon, Navbar, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AdvancedDesigner } from "./AdvancedDesigner";
+import { DeviceApi } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
 import { EroslinkRoutineViewer } from "./EroslinkRoutineViewer";
 import { FirmwareUpdate } from "./FirmwareUpdate";
@@ -13,10 +14,11 @@ import { ProgramManager } from "./ProgramManager";
 export function App() {
   const [currentPage, setPage] = useState("menu");
   const [backAction, setBackAction] = useState<(() => void) | null>(null);
-  const [device, setDevice] = useState<DeviceConnection | null>(null);
+  const [connection, setConnection] = useState<DeviceConnection | null>(null);
+  const [devMode, setDevMode] = useState(false);
 
   useEffect(() => {
-    if (device === null) {
+    if (connection === null) {
       setPage(prevPage => {
         if (prevPage === "menu" || prevPage === "designer") {
           return prevPage;
@@ -25,30 +27,46 @@ export function App() {
         return "menu";
       });
     }
-  }, [device]);
+  }, [connection]);
+
+  // Use this if we're in devMode and not connected.
+  const mockDevice = useMemo(() => devMode ? new DeviceApi({
+    async peek(address: number): Promise<number> {
+      // A delay is required to let usePolledGetter function.
+      await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
+
+      return 0;
+    },
+    async poke(address: number, data: number | number[]): Promise<void> {
+      // A delay is required to let usePolledGetter function.
+      await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
+    },
+  }) : null, [devMode]);
+
+  const device = useMemo(() => connection ? new DeviceApi(connection) : mockDevice, [connection, mockDevice]);
 
   let page = undefined;
   switch (currentPage) {
     case "menu":
-      page = <MainMenu onClick={setPage} device={device} setDevice={setDevice} />;
+      page = <MainMenu onClick={setPage} connection={connection} setConnection={setConnection} device={device} devMode={devMode} setDevMode={setDevMode} />;
       break;
     case "controls":
-      page = device && <InteractiveControls connection={device} />;
+      page = device && <InteractiveControls device={device} />;
       break;
     case "designer":
       page = <AdvancedDesigner setBackAction={setBackAction} />;
       break;
     case "programs":
-      page = device && <ProgramManager device={device} />;
+      page = connection && <ProgramManager device={connection} />;
       break;
     case "firmware":
       page = <FirmwareUpdate />;
       break;
     case "memory":
-      page = device && <MemoryView device={device} />;
+      page = connection && <MemoryView device={connection} />;
       break;
     case "tester":
-      page = device && <InstructionTester device={device} />;
+      page = connection && <InstructionTester device={connection} />;
       break;
     case "viewer":
       page = <EroslinkRoutineViewer />;
@@ -63,7 +81,7 @@ export function App() {
             {backAction ? "Back" : "Menu"}
           </Button>
         </Navbar.Group>
-        {device && <Navbar.Group align="right">
+        {device && <Navbar.Group align="right" style={{ paddingRight: 20 }}>
           <Tabs id="navbar" large={true} selectedTabId={currentPage} onChange={tab => setPage(tab.toString())} renderActiveTabPanelOnly={true}>
             <Tab id="controls" title="Controls" />
             <Tab id="designer" title="Designer" />

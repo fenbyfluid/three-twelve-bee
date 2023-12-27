@@ -86,9 +86,9 @@ export class DeviceConnection extends EventTarget {
   }
 
   async peek(address: number): Promise<number> {
-    const response = await this.writeAndReadResponse(
-      [0x3C, (address >> 8) & 0xFF, address & 0xFF],
-      true, 3, true);
+    const response = await this.writeAndReadResponse([
+      0x3C, (address >> 8) & 0xFF, address & 0xFF,
+    ], 2);
 
     if (response[0] !== 0x22) {
       throw new Error("Wrong response received from read message.");
@@ -97,7 +97,7 @@ export class DeviceConnection extends EventTarget {
     return response[1];
   }
 
-  async* iterBytes(offset: number): AsyncGenerator<number, void> {
+  async *iterBytes(offset: number): AsyncGenerator<number, void> {
     let cursor = 0;
     while ((offset + cursor) <= 0xFFFF) {
       yield this.peek(offset + cursor);
@@ -112,9 +112,9 @@ export class DeviceConnection extends EventTarget {
       data = [data];
     }
 
-    const response = await this.writeAndReadResponse(
-      [0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...data],
-      true, 1, false);
+    const response = await this.writeAndReadResponse([
+      0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...data,
+    ], 1);
 
     if (response[0] === 0x07) {
       throw new Error("Write rejected, check key setup.");
@@ -221,8 +221,7 @@ export class DeviceConnection extends EventTarget {
   }
 
   private async setupKeys(): Promise<number> {
-    const response = await this.writeAndReadResponse([0x2F, 0x00],
-      true, 3, true, 1000);
+    const response = await this.writeAndReadResponse([0x2F, 0x00], 2, 1000);
 
     if (response === null) {
       // Set the key to explicitly 0x00 and try again.
@@ -246,12 +245,14 @@ export class DeviceConnection extends EventTarget {
     return response[1];
   }
 
-  private writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean): Promise<Uint8Array>;
-  private writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean, readTimeout: number): Promise<Uint8Array | null>;
-  private async writeAndReadResponse(data: number[], checksumWrite: boolean, readLength: number, checksumRead: boolean, readTimeout: number = -1): Promise<Uint8Array | null> {
+  private writeAndReadResponse(data: number[], readLength: number): Promise<Uint8Array>;
+  private writeAndReadResponse(data: number[], readLength: number, readTimeout: number): Promise<Uint8Array | null>;
+  private async writeAndReadResponse(data: number[], readLength: number, readTimeout: number = -1): Promise<Uint8Array | null> {
+    const checksumWrite = data.length > 1;
+    const checksumRead = readLength > 1;
     return this.commandQueue = this.commandQueue
       .then(() => this.write(data, checksumWrite))
-      .then(() => this.read(readLength, checksumRead, readTimeout));
+      .then(() => this.read(readLength + (checksumRead ? 1 : 0), checksumRead, readTimeout));
   }
 
   private read(length: number, checksum: boolean): Promise<Uint8Array>;
@@ -419,8 +420,7 @@ export class DeviceConnection extends EventTarget {
 
   private async sync(): Promise<void> {
     for (let i = 0; i < 11; ++i) {
-      const response = await this.writeAndReadResponse([0x00],
-        false, 1, false, 100)
+      const response = await this.writeAndReadResponse([0x00], 1, 100);
 
       if (!response) {
         continue;
