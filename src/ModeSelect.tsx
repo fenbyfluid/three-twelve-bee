@@ -42,6 +42,7 @@ export function ModeSelect({ mode, onModeChanged, topMode }: ModeSelectProps) {
     />;
   }, []);
 
+  // TODO: Keep local state of the selected mode to improve UI responsiveness.
   return <Select
     items={items}
     itemRenderer={itemRenderer}

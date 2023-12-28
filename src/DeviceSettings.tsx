@@ -1,7 +1,15 @@
-import { FormGroup, H3, SegmentedControl } from "@blueprintjs/core";
+import { Button, ButtonProps, ControlGroup, FormGroup, H3, SegmentedControl, TabsExpander } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useState } from "react";
 import { AdvancedParameterSlider } from "./AdvancedParameterSlider";
-import { DeviceApi, Mode, PowerLevel, Settings, usePolledGetter } from "./DeviceApi";
+import {
+  DEFAULT_SETTINGS,
+  DeviceApi,
+  Mode,
+  PowerLevel,
+  ReadonlySettings,
+  Settings,
+  usePolledGetter,
+} from "./DeviceApi";
 import { ModeSelect } from "./ModeSelect";
 import { PanelCard } from "./PanelCard";
 
@@ -25,28 +33,28 @@ function AdvancedParametersPanel({ settings, style }: { settings: Settings, styl
 
   return <PanelCard label="Advanced Parameters" style={cardStyle}>
     <FormGroup label="Ramp Level" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={rampLevelValue} onRelease={value => settings.setRampLevelParameter(value)} min={205} max={255} /*initialValue={225}*/ labelRenderer={v => `${v - 155}%`} />
+      <AdvancedParameterSlider value={rampLevelValue} onRelease={value => settings.setRampLevelParameter(value)} min={205} max={255} labelRenderer={v => `${v - 155}%`} />
     </FormGroup>
     <FormGroup label="Ramp Time" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={rampTimeValue} onRelease={value => settings.setRampTimeParameter(value)} min={1} max={120} /*initialValue={20}*/ labelRenderer={v => `${v}s`} />
+      <AdvancedParameterSlider value={rampTimeValue} onRelease={value => settings.setRampTimeParameter(value)} min={1} max={120} labelRenderer={v => `${v}s`} />
     </FormGroup>
     <FormGroup label="Depth" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={depthValue} onRelease={value => settings.setDepthParameter(value)} min={165} max={255} /*initialValue={215}*/ labelRenderer={v => `${v - 155}`} />
+      <AdvancedParameterSlider value={depthValue} onRelease={value => settings.setDepthParameter(value)} min={165} max={255} labelRenderer={v => `${v - 155}`} />
     </FormGroup>
     <FormGroup label="Tempo" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={tempoValue} onRelease={value => settings.setTempoParameter(value)} min={1} max={100} /*initialValue={10}*/ />
+      <AdvancedParameterSlider value={tempoValue} onRelease={value => settings.setTempoParameter(value)} min={1} max={100} />
     </FormGroup>
     <FormGroup label="Frequency" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={frequencyValue} onRelease={value => settings.setFrequencyParameter(value)} min={250} max={15} /*initialValue={25}*/ labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
+      <AdvancedParameterSlider value={frequencyValue} onRelease={value => settings.setFrequencyParameter(value)} min={250} max={15} labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
     </FormGroup>
     <FormGroup label="Effect" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={effectValue} onRelease={value => settings.setEffectParameter(value)} min={1} max={100} /*initialValue={5}*/ />
+      <AdvancedParameterSlider value={effectValue} onRelease={value => settings.setEffectParameter(value)} min={1} max={100} />
     </FormGroup>
     <FormGroup label="Width" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={widthValue} onRelease={value => settings.setWidthParameter(value)} min={70} max={250} /*initialValue={130}*/ labelRenderer={v => `${v}ms`} />
+      <AdvancedParameterSlider value={widthValue} onRelease={value => settings.setWidthParameter(value)} min={70} max={250} labelRenderer={v => `${v}ms`} />
     </FormGroup>
     <FormGroup label="Pace" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={paceValue} onRelease={value => settings.setPaceParameter(value)} min={1} max={100} /*initialValue={5}*/ />
+      <AdvancedParameterSlider value={paceValue} onRelease={value => settings.setPaceParameter(value)} min={1} max={100} />
     </FormGroup>
   </PanelCard>;
 }
@@ -71,9 +79,41 @@ function PowerLevelControl({ powerLevel, onPowerLevelChanged }: { powerLevel?: P
   ]} value={cachedPowerLevel} onValueChange={onValueChange} intent="primary" small={true} />;
 }
 
+function CopySettingsButton({ from, to, disabled, ...props }: { from: ReadonlySettings, to: Settings } & Omit<ButtonProps, "onClick">) {
+  const [isCopying, setIsCopying] = useState(false);
+
+  const copySettings = useCallback(async () => {
+    setIsCopying(true);
+
+    // Re-get each value to ensure that it is up to date.
+    await Promise.all([
+      from.getPowerLevel().then(to.setPowerLevel),
+      from.getSplitModeA().then(to.setSplitModeA),
+      from.getSplitModeB().then(to.setSplitModeB),
+      from.getFavouriteMode().then(to.setFavouriteMode),
+
+      // TODO: We could offer a bulk setter for these to do it in a single command.
+      from.getRampLevelParameter().then(to.setRampLevelParameter),
+      from.getRampTimeParameter().then(to.setRampTimeParameter),
+      from.getDepthParameter().then(to.setDepthParameter),
+      from.getTempoParameter().then(to.setTempoParameter),
+      from.getFrequencyParameter().then(to.setFrequencyParameter),
+      from.getEffectParameter().then(to.setEffectParameter),
+      from.getWidthParameter().then(to.setWidthParameter),
+      from.getPaceParameter().then(to.setPaceParameter),
+    ]);
+
+    setIsCopying(false);
+  }, [from, to]);
+
+  return <Button disabled={disabled || isCopying} onClick={copySettings} {...props} />
+}
+
 export function DeviceSettings({ device }: { device: DeviceApi }) {
   const settings = device.currentSettings;
-  const topMode = usePolledGetter(settings.getTopMode);
+  const savedSettings = device.savedSettings;
+
+  const topMode = usePolledGetter(savedSettings.getTopMode);
   const powerLevel = usePolledGetter(settings.getPowerLevel);
   const splitModeA = usePolledGetter(settings.getSplitModeA);
   const splitModeB = usePolledGetter(settings.getSplitModeB);
@@ -102,9 +142,19 @@ export function DeviceSettings({ device }: { device: DeviceApi }) {
   };
 
   return <div>
-    <H3 style={{ margin: 20 }}>
-      Device Settings
-    </H3>
+    <div style={{ margin: 20, display: "flex" }}>
+      <H3 style={{ marginBottom: 0 }}>
+        Device Settings
+      </H3>
+      <TabsExpander />
+      <ControlGroup>
+        {/* TODO: Disable these buttons if they would be a no-op. */}
+        {/* TODO: Disable all controls on the page while these are running. */}
+        <CopySettingsButton from={settings} to={savedSettings} icon="floppy-disk" intent="primary">Save</CopySettingsButton>
+        <CopySettingsButton from={savedSettings} to={settings} icon="reset" intent="none">Restore</CopySettingsButton>
+        <CopySettingsButton from={DEFAULT_SETTINGS} to={settings} icon="clean" intent="danger">Reset</CopySettingsButton>
+      </ControlGroup>
+    </div>
     <div style={bodyStyle}>
       <PanelCard label="Favourite Mode">
         <div style={panelInnerStyle}>

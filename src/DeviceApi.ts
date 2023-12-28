@@ -153,7 +153,63 @@ export enum PowerLevel {
   High,
 }
 
-export class Settings {
+export interface ReadonlySettings {
+  getPowerLevel(): Promise<PowerLevel>;
+  getSplitModeA(): Promise<Mode>;
+  getSplitModeB(): Promise<Mode>;
+  getFavouriteMode(): Promise<Mode>;
+  getRampLevelParameter(): Promise<number>;
+  getRampTimeParameter(): Promise<number>;
+  getDepthParameter(): Promise<number>;
+  getTempoParameter(): Promise<number>;
+  getFrequencyParameter(): Promise<number>;
+  getEffectParameter(): Promise<number>;
+  getWidthParameter(): Promise<number>;
+  getPaceParameter(): Promise<number>;
+}
+
+export const DEFAULT_SETTINGS: ReadonlySettings = {
+  async getPowerLevel(): Promise<PowerLevel> {
+    return PowerLevel.Normal;
+  },
+  async getSplitModeA(): Promise<Mode> {
+    return Mode.Stroke;
+  },
+  async getSplitModeB(): Promise<Mode> {
+    return Mode.Waves;
+  },
+  async getFavouriteMode(): Promise<Mode> {
+    return Mode.Waves;
+  },
+  async getRampLevelParameter(): Promise<number> {
+    return 225;
+  },
+  async getRampTimeParameter(): Promise<number> {
+    return 20;
+  },
+  async getDepthParameter(): Promise<number> {
+    return 215;
+  },
+  async getTempoParameter(): Promise<number> {
+    // The manual says this should be 10, but it seems to be 1 in practice.
+    return 1;
+  },
+  async getFrequencyParameter(): Promise<number> {
+    return 25;
+  },
+  async getEffectParameter(): Promise<number> {
+    return 5;
+  },
+  async getWidthParameter(): Promise<number> {
+    return 130;
+  },
+  async getPaceParameter(): Promise<number> {
+    return 5;
+  },
+};
+
+// TODO: Do we need to use the menu commands for these setters?
+export class Settings implements ReadonlySettings {
   private readonly connection: DeviceConnection;
   private readonly baseAddress: number;
 
