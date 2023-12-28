@@ -1,4 +1,14 @@
-import { Button, Classes, ControlGroup, H3, Icon, Menu, MenuItem, TabsExpander } from "@blueprintjs/core";
+import {
+  Button,
+  Card,
+  CardList,
+  Classes,
+  ControlGroup,
+  H3,
+  Icon,
+  NonIdealState,
+  TabsExpander,
+} from "@blueprintjs/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import React, { useEffect, useState } from "react";
 import { db } from "./Database";
@@ -44,6 +54,14 @@ export function AdvancedDesigner({ setBackAction }: AdvancedDesignerProps) {
     });
   };
 
+  const onClickCreateButton = () => {
+    db.routines.add({
+      routine: { name: "New Routine", modules: [] },
+    }).then(id => {
+      setSelectedRoutineId(id);
+    });
+  };
+
   return <div style={{ margin: "0 20px" }}>
     <div style={{ margin: "20px 0", display: "flex" }}>
       <H3 style={{ marginBottom: 0 }}>
@@ -60,22 +78,27 @@ export function AdvancedDesigner({ setBackAction }: AdvancedDesignerProps) {
             setSelectedRoutineId(undefined);
           });
         }}>Delete</Button>
-      </ControlGroup> : <Button intent="primary" onClick={() => {
-        db.routines.add({
-          routine: { name: "New Routine", modules: [] },
-        }).then(id => {
-          setSelectedRoutineId(id);
-        });
-      }}>Create</Button>}
+      </ControlGroup> : ((routines && routines.length > 0) ?
+          <Button intent="primary" onClick={onClickCreateButton}>Create</Button> :
+          undefined)}
     </div>
     {selectedRoutine ? <RoutineEditor routine={selectedRoutine.routine} onChange={onRoutineChange} /> :
-      <Menu large={true} className={Classes.ELEVATION_1}>
-        {(routines && routines.length > 0) ? routines.map(routine => <MenuItem
-          key={routine.id}
-          text={routine.routine.name}
-          labelElement={<Icon icon="chevron-right" size={20} />}
-          onClick={() => setSelectedRoutineId(routine.id)}
-        />) : <MenuItem text="No Routines" />}
-      </Menu>}
+        ((routines && routines.length > 0) ? <CardList bordered={true} className={Classes.ELEVATION_1}>
+          {routines.map(routine => <Card
+              key={routine.id}
+              interactive={true}
+              onClick={() => setSelectedRoutineId(routine.id)}
+              style={{ justifyContent: "space-between" }}
+          >
+            <span>{routine.routine.name}</span>
+            <Icon icon="chevron-right" className={Classes.TEXT_MUTED} />
+          </Card>)}
+        </CardList> : <div style={{ margin: "100px 0" }}>
+          <NonIdealState
+              title="No Routines"
+              description="Create a new routine to get started."
+              action={<Button intent="primary" onClick={onClickCreateButton}>Create</Button>}
+          />
+        </div>)}
   </div>;
 }
