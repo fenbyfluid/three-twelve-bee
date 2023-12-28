@@ -1,11 +1,20 @@
 import { FormGroup, H3, SegmentedControl } from "@blueprintjs/core";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AdvancedParameterSlider } from "./AdvancedParameterSlider";
-import { DeviceApi } from "./DeviceApi";
+import { DeviceApi, Mode, PowerLevel, Settings, usePolledGetter } from "./DeviceApi";
 import { ModeSelect } from "./ModeSelect";
 import { PanelCard } from "./PanelCard";
 
-function AdvancedParametersPanel({ device, style }: { device: DeviceApi, style?: React.CSSProperties }) {
+function AdvancedParametersPanel({ settings, style }: { settings: Settings, style?: React.CSSProperties }) {
+  const rampLevelValue = usePolledGetter(settings.getRampLevelParameter);
+  const rampTimeValue = usePolledGetter(settings.getRampTimeParameter);
+  const depthValue = usePolledGetter(settings.getDepthParameter);
+  const tempoValue = usePolledGetter(settings.getTempoParameter);
+  const frequencyValue = usePolledGetter(settings.getFrequencyParameter);
+  const effectValue = usePolledGetter(settings.getEffectParameter);
+  const widthValue = usePolledGetter(settings.getWidthParameter);
+  const paceValue = usePolledGetter(settings.getPaceParameter);
+
   const cardStyle: React.CSSProperties = {
     paddingBottom: 0,
     display: "grid",
@@ -16,33 +25,60 @@ function AdvancedParametersPanel({ device, style }: { device: DeviceApi, style?:
 
   return <PanelCard label="Advanced Parameters" style={cardStyle}>
     <FormGroup label="Ramp Level" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={215} min={205} max={255} /*initialValue={225}*/ labelRenderer={v => `${v - 155}%`} />
+      <AdvancedParameterSlider value={rampLevelValue} onRelease={value => settings.setRampLevelParameter(value)} min={205} max={255} /*initialValue={225}*/ labelRenderer={v => `${v - 155}%`} />
     </FormGroup>
     <FormGroup label="Ramp Time" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={60} min={1} max={120} /*initialValue={20}*/ labelRenderer={v => `${v}s`} />
+      <AdvancedParameterSlider value={rampTimeValue} onRelease={value => settings.setRampTimeParameter(value)} min={1} max={120} /*initialValue={20}*/ labelRenderer={v => `${v}s`} />
     </FormGroup>
     <FormGroup label="Depth" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={215} min={165} max={255} /*initialValue={215}*/ labelRenderer={v => `${v - 155}`} />
+      <AdvancedParameterSlider value={depthValue} onRelease={value => settings.setDepthParameter(value)} min={165} max={255} /*initialValue={215}*/ labelRenderer={v => `${v - 155}`} />
     </FormGroup>
     <FormGroup label="Tempo" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={1} min={1} max={100} /*initialValue={10}*/ />
+      <AdvancedParameterSlider value={tempoValue} onRelease={value => settings.setTempoParameter(value)} min={1} max={100} /*initialValue={10}*/ />
     </FormGroup>
     <FormGroup label="Frequency" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={20} min={250} max={15} /*initialValue={25}*/ labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
+      <AdvancedParameterSlider value={frequencyValue} onRelease={value => settings.setFrequencyParameter(value)} min={250} max={15} /*initialValue={25}*/ labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
     </FormGroup>
     <FormGroup label="Effect" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={5} min={1} max={100} /*initialValue={5}*/ />
+      <AdvancedParameterSlider value={effectValue} onRelease={value => settings.setEffectParameter(value)} min={1} max={100} /*initialValue={5}*/ />
     </FormGroup>
     <FormGroup label="Width" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={80} min={70} max={250} /*initialValue={130}*/ labelRenderer={v => `${v}ms`} />
+      <AdvancedParameterSlider value={widthValue} onRelease={value => settings.setWidthParameter(value)} min={70} max={250} /*initialValue={130}*/ labelRenderer={v => `${v}ms`} />
     </FormGroup>
     <FormGroup label="Pace" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={5} min={1} max={100} /*initialValue={5}*/ />
+      <AdvancedParameterSlider value={paceValue} onRelease={value => settings.setPaceParameter(value)} min={1} max={100} /*initialValue={5}*/ />
     </FormGroup>
   </PanelCard>;
 }
 
+function PowerLevelControl({ powerLevel, onPowerLevelChanged }: { powerLevel?: PowerLevel, onPowerLevelChanged?: (value: PowerLevel) => void }) {
+  const [cachedPowerLevel, setCachedPowerLevel] = useState("");
+
+  useEffect(() => {
+    setCachedPowerLevel(powerLevel !== undefined ? PowerLevel[powerLevel] : "");
+  }, [powerLevel]);
+
+  const onValueChange = useCallback((value: string) => {
+    setCachedPowerLevel(value);
+
+    onPowerLevelChanged && onPowerLevelChanged(PowerLevel[value as keyof typeof PowerLevel]);
+  }, [onPowerLevelChanged]);
+
+  return <SegmentedControl fill={true} options={[
+    { label: "Low", value: "Low" },
+    { label: "Normal", value: "Normal" },
+    { label: "High", value: "High" },
+  ]} value={cachedPowerLevel} onValueChange={onValueChange} intent="primary" small={true} />;
+}
+
 export function DeviceSettings({ device }: { device: DeviceApi }) {
+  const settings = device.currentSettings;
+  const topMode = usePolledGetter(settings.getTopMode);
+  const powerLevel = usePolledGetter(settings.getPowerLevel);
+  const splitModeA = usePolledGetter(settings.getSplitModeA);
+  const splitModeB = usePolledGetter(settings.getSplitModeB);
+  const favouriteMode = usePolledGetter(settings.getFavouriteMode);
+
   const bodyStyle: React.CSSProperties = {
     marginTop: 30,
     marginBottom: 20,
@@ -72,27 +108,23 @@ export function DeviceSettings({ device }: { device: DeviceApi }) {
     <div style={bodyStyle}>
       <PanelCard label="Favourite Mode">
         <div style={panelInnerStyle}>
-          <ModeSelect onItemSelect={() => {}} />
+          <ModeSelect mode={favouriteMode} topMode={topMode} onModeChanged={settings.setFavouriteMode} />
         </div>
       </PanelCard>
       <PanelCard label="Power Level">
         <div style={panelInnerStyle}>
-          <SegmentedControl fill={true} options={[
-            { label: "Low", value: "Low" },
-            { label: "Normal", value: "Normal" },
-            { label: "High", value: "High" },
-          ]} value={""} intent="primary" small={true} />
+          <PowerLevelControl powerLevel={powerLevel} onPowerLevelChanged={settings.setPowerLevel} />
         </div>
       </PanelCard>
       <PanelCard label="Split Modes" style={splitModePanelStyle}>
         <FormGroup label="Channel A">
-          <ModeSelect onItemSelect={() => {}} />
+          <ModeSelect mode={splitModeA} topMode={Mode.Audio3} onModeChanged={settings.setSplitModeA} />
         </FormGroup>
         <FormGroup label="Channel B">
-          <ModeSelect onItemSelect={() => {}} />
+          <ModeSelect mode={splitModeB} topMode={Mode.Audio3} onModeChanged={settings.setSplitModeB} />
         </FormGroup>
       </PanelCard>
-      <AdvancedParametersPanel device={device} style={{ gridColumn: "span 2" }} />
+      <AdvancedParametersPanel settings={settings} style={{ gridColumn: "span 2" }} />
     </div>
   </div>;
 }

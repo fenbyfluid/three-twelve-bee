@@ -261,15 +261,15 @@ export class DeviceApi {
     }
 
     // Get the mode index we can point at the scratchpad.
-    const currentTopMode = await this.connection.peek(0x8008); // EEPROM CurrentTopMode
-    const scratchpadMode = Math.min(Math.max(0x88, currentTopMode + 1), 0x8E); // "User 1" - "User 7"
+    const currentTopMode = await this.savedSettings.getTopMode();
+    const scratchpadMode = Math.min(Math.max(Mode.User1, currentTopMode + 1), Mode.User7);
 
     // Write the scratchpad module ID as the start module for the selected mode.
     // This seems to be set in the EEPROM even for the scratchpad modules.
     await this.connection.poke(0x8018 + (scratchpadMode - 0x88), 0xC0);
 
     // Set the in-memory high mode to include our newly assigned scratchpad mode.
-    await this.connection.poke(0x41F3, scratchpadMode); // RAM CurrentTopMode
+    await this.currentSettings.setTopMode(scratchpadMode);
 
     // Switch to the new scratchpad mode.
     await this.switchToMode(scratchpadMode);

@@ -1,5 +1,5 @@
 import { Card, Checkbox, H3, H5, H6, Slider, Tag } from "@blueprintjs/core";
-import React from "react";
+import React, { useCallback } from "react";
 import "./InteractiveControls.css";
 import {
   DeviceApi,
@@ -84,10 +84,13 @@ function ChannelControls(props: ChannelControlsProps) {
 
 export function InteractiveControls({ device }: { device: DeviceApi }) {
   const currentMode = usePolledGetter(device.getCurrentMode);
-  const [splitModeA, splitModeB] = usePolledGetter(currentMode === Mode.Split && (async () => [
+
+  const getSplitModes = useCallback(async (): Promise<[Mode, Mode]> => [
     await device.currentSettings.getSplitModeA(),
     await device.currentSettings.getSplitModeB(),
-  ])) ?? [undefined, undefined];
+  ], [device]);
+
+  const [splitModeA, splitModeB] = usePolledGetter<[Mode, Mode]>(currentMode === Mode.Split && getSplitModes) ?? [undefined, undefined];
 
   const style: React.CSSProperties = {
     display: "flex",

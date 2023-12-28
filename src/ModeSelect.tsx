@@ -5,8 +5,20 @@ import React, { useCallback, useMemo } from "react";
 import { Mode } from "./DeviceApi";
 import "./ModeSelect.css";
 
-export function ModeSelect({ onItemSelect }: { onItemSelect: () => void }) {
-  const items = useMemo(() => Mode.getAsValues(), []);
+type ModeSelectProps = {
+  mode?: Mode,
+  onModeChanged?: (mode: Mode) => void,
+  topMode?: Mode,
+};
+
+export function ModeSelect({ mode, onModeChanged, topMode }: ModeSelectProps) {
+  const items = useMemo(() => Mode.getAsValues().filter(({ value }) => {
+    if (topMode === undefined) {
+      return true;
+    }
+
+    return value <= topMode;
+  }), [topMode]);
 
   const itemRenderer: ItemRenderer<typeof items[0]> = useCallback((mode, {
     ref,
@@ -34,12 +46,12 @@ export function ModeSelect({ onItemSelect }: { onItemSelect: () => void }) {
     items={items}
     itemRenderer={itemRenderer}
     itemsEqual="key"
-    onItemSelect={onItemSelect}
+    onItemSelect={({ value }) => onModeChanged && onModeChanged(value)}
     fill={true}
     filterable={false}
     popoverProps={{ matchTargetWidth: true }}
     popoverContentProps={{ className: "mode-select" }}
   >
-    <Button text={"\u00a0"} rightIcon="caret-down" fill={true} alignText="left" />
+    <Button text={(mode !== undefined ? Mode.getDisplayName(mode) : undefined) ?? "\u00a0"} rightIcon="caret-down" fill={true} alignText="left" />
   </Select>;
 }

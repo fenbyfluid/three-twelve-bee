@@ -1,5 +1,5 @@
 import { Slider, SliderProps } from "@blueprintjs/core";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "./AdvancedParameterSlider.css";
 
 type AdvancedParameterSliderProps = {
@@ -23,8 +23,12 @@ export function AdvancedParameterSlider({
   const sliderMin = inverted ? max : min;
   const sliderMax = inverted ? min : max;
 
-  const defaultValue = (value !== undefined) ? (inverted ? ((sliderMin + sliderMax) - value) : value) : sliderMin;
-  const [sliderValue, setSliderValue] = useState<number>(defaultValue);
+  const [sliderValue, setSliderValue] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const defaultValue = (value !== undefined) ? (inverted ? ((sliderMin + sliderMax) - value) : value) : undefined;
+    setSliderValue(defaultValue);
+  }, [value]);
 
   const sliderLabelRenderer = useCallback((sliderValue: number) => {
     const value = inverted ? ((sliderMin + sliderMax) - sliderValue) : sliderValue;
@@ -46,13 +50,13 @@ export function AdvancedParameterSlider({
 
   const sliderInitialValue = (initialValue !== undefined) ? (inverted ? ((sliderMin + sliderMax) - initialValue) : initialValue) : undefined;
 
-  const percentage = (sliderValue - sliderMin) / (sliderMax - sliderMin);
+  const percentage = sliderValue !== undefined ? (sliderValue - sliderMin) / (sliderMax - sliderMin) : undefined;
   const keepAway = 0.15;
   const labelValues = [];
-  if (percentage > keepAway) {
+  if (percentage === undefined || percentage > keepAway) {
     labelValues.push(sliderMin);
   }
-  if (percentage < (1 - keepAway)) {
+  if (percentage === undefined || percentage < (1 - keepAway)) {
     labelValues.push(sliderMax);
   }
 
@@ -62,7 +66,7 @@ export function AdvancedParameterSlider({
   return <Slider
     min={sliderMin}
     max={sliderMax}
-    value={sliderValue}
+    value={sliderValue ?? sliderMin}
     initialValue={sliderInitialValue}
     showTrackFill={sliderValue !== sliderInitialValue}
     stepSize={1}
