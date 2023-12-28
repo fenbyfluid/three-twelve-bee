@@ -21,6 +21,10 @@ body.bp5-dark {
     background-color: #394b59;
 }
 
+.bp5-card.bp5-dark, .bp5-dark .bp5-card {
+    background-color: #394b59;
+}
+
 .container {
     max-width: 768px;
     margin: 0 auto;
@@ -47,6 +51,16 @@ body.bp5-dark {
     .footer {
         flex-direction: row;
     }
+}
+
+.react-flow {
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgb(16 22 26 / 10%), 0 0 0 rgb(16 22 26 / 0%), 0 1px 1px rgb(16 22 26 / 20%);
+}
+
+.bp5-dark .react-flow {
+    background: rgba(17, 20, 24, 0.3);
+    box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0), inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* We have this attribution link in the global footer. */

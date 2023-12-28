@@ -1,4 +1,4 @@
-import { Card, Checkbox, H3, H5, H6, Slider, Tag } from "@blueprintjs/core";
+import { Checkbox, H3, H5, Slider, Tag } from "@blueprintjs/core";
 import React, { useCallback } from "react";
 import "./InteractiveControls.css";
 import {
@@ -10,6 +10,7 @@ import {
   usePolledGetter,
   ValueSelectFlags,
 } from "./DeviceApi";
+import { PanelCard } from "./PanelCard";
 
 interface ChannelControlProps {
   label: string,
@@ -53,32 +54,28 @@ function ChannelControls(props: ChannelControlsProps) {
       Channel {props.channel}
       {props.splitMode && <Tag minimal={true} style={{ float: "right" }}>{props.splitMode}</Tag>}
     </H5>
-    <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Timing</H6>
+    <PanelCard className="channel-control-group" label="Timing">
       <ChannelControl label="On" value={usePolledGetter(channel.getGateOnTime)} multiAdjust={gateSelect.onSource === SourceSelection.MultiAdjust} source="Effect" sourceChecked={gateSelect.onSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Off" value={usePolledGetter(channel.getGateOffTime)} multiAdjust={gateSelect.offSource === SourceSelection.MultiAdjust} source="Tempo" sourceChecked={gateSelect.offSource === SourceSelection.AdvancedParameter} />
-    </Card>
-    <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Level</H6>
+    </PanelCard>
+    <PanelCard className="channel-control-group" label="Level">
       <ChannelControl label="Val" min={127} value={usePolledGetter(channel.intensity.getValue)} />
       <ChannelControl label="Min" min={127} value={usePolledGetter(channel.intensity.getMin)} source="Depth" sourceChecked={intensitySelect.timerSelection !== TimerSelection.None && intensitySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Max" min={127} value={usePolledGetter(channel.intensity.getMax)} />
       <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.intensity.getRate)} multiAdjust={intensitySelect.rateSource === SourceSelection.MultiAdjust} source="Tempo" sourceChecked={intensitySelect.rateSource === SourceSelection.AdvancedParameter} />
-    </Card>
-    <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Frequency</H6>
+    </PanelCard>
+    <PanelCard className="channel-control-group" label="Frequency">
       <ChannelControl label="Val" min={8} invert={true} value={usePolledGetter(channel.frequency.getValue)} multiAdjust={frequencySelect.timerSelection === TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.MultiAdjust} source="Freq" sourceChecked={frequencySelect.timerSelection === TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Min" min={8} invert={true} value={usePolledGetter(channel.frequency.getMax)} />
       <ChannelControl label="Max" min={8} invert={true} value={usePolledGetter(channel.frequency.getMin)} multiAdjust={frequencySelect.timerSelection !== TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.MultiAdjust} source="Freq" sourceChecked={frequencySelect.timerSelection !== TimerSelection.None && frequencySelect.valOrMinSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.frequency.getRate)} multiAdjust={frequencySelect.rateSource === SourceSelection.MultiAdjust} source="Effect" sourceChecked={frequencySelect.rateSource === SourceSelection.AdvancedParameter} />
-    </Card>
-    <Card className="channel-control-group">
-      <H6 className="channel-control-group-label">Width</H6>
+    </PanelCard>
+    <PanelCard className="channel-control-group" label="Width">
       <ChannelControl label="Val" min={70} value={usePolledGetter(channel.width.getValue)} source="Width" sourceChecked={widthSelect.timerSelection === TimerSelection.None && widthSelect.valOrMinSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Min" min={70} value={usePolledGetter(channel.width.getMin)} source="Width" sourceChecked={widthSelect.timerSelection !== TimerSelection.None && widthSelect.valOrMinSource === SourceSelection.AdvancedParameter} />
       <ChannelControl label="Max" min={70} value={usePolledGetter(channel.width.getMax)} />
       <ChannelControl label="Rate" min={1} invert={true} value={usePolledGetter(channel.width.getRate)} multiAdjust={widthSelect.rateSource === SourceSelection.MultiAdjust} source="Pace" sourceChecked={widthSelect.rateSource === SourceSelection.AdvancedParameter} />
-    </Card>
+    </PanelCard>
   </div>
 }
 

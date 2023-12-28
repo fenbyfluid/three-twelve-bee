@@ -141,8 +141,6 @@ export function EroslinkRoutineGraph(props: { routine: Routine | null }) {
   return <div style={{
     width: "100%",
     height: 400,
-    borderRadius: 3,
-    boxShadow: "0 0 0 1px rgb(16 22 26 / 10%), 0 0 0 rgb(16 22 26 / 0%), 0 1px 1px rgb(16 22 26 / 20%)",
   }}>
     <ReactFlow
       nodes={nodes}
