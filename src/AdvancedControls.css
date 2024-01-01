@@ -1,0 +1,21 @@
+.panel-card.channel-card .bp5-form-group {
+    border-left: 2px solid rgba(17, 20, 24, 0.5);
+    padding-left: 9px;
+    margin-left: -11px;
+}
+
+.panel-card.channel-card .bp5-form-group .bp5-control:first-child {
+    margin-top: 5px;
+}
+
+.panel-card.channel-card .bp5-form-group .bp5-control:last-child {
+    margin-bottom: 5px;
+}
+
+.panel-card.channel-card .param-slider {
+    margin-top: 5px;
+}
+
+.panel-card.channel-card .param-slider:not(:last-child) {
+    margin-bottom: 5px;
+}

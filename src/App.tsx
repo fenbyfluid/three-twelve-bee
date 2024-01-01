@@ -1,5 +1,6 @@
 import { Button, Classes, Icon, Navbar, Tab, Tabs, TabsExpander } from "@blueprintjs/core";
 import React, { useEffect, useMemo, useState } from "react";
+import { AdvancedControls } from "./AdvancedControls";
 import { AdvancedDesigner } from "./AdvancedDesigner";
 import { DeviceSettings } from "./DeviceSettings";
 import { DeviceApi } from "./DeviceApi";
@@ -31,18 +32,35 @@ export function App() {
   }, [connection]);
 
   // Use this if we're in devMode and not connected.
-  const mockDevice = useMemo(() => devMode ? new DeviceApi({
-    async peek(address: number): Promise<number> {
-      // A delay is required to let usePolledGetter function.
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
+  const mockDevice = useMemo(() => {
+    if (!devMode) {
+      return null;
+    }
 
-      return 0;
-    },
-    async poke(address: number, data: number | number[]): Promise<void> {
-      // A delay is required to let usePolledGetter function.
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
-    },
-  }) : null, [devMode]);
+    const mockConnection = {
+      mockMemory: [] as number[],
+      async peek(address: number): Promise<number> {
+        // A delay is required to let usePolledGetter function.
+        await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
+
+        return this.mockMemory[address] ?? 0;
+      },
+      async poke(address: number, data: number | number[]): Promise<void> {
+        // A delay is required to let usePolledGetter function.
+        await new Promise<void>(resolve => setTimeout(() => resolve(), 18));
+
+        if (!Array.isArray(data)) {
+          data = [data];
+        }
+
+        for (let i = 0; i < data.length; ++i) {
+          this.mockMemory[address + i] = data[i];
+        }
+      },
+    };
+
+    return new DeviceApi(mockConnection);
+  }, [devMode]);
 
   const device = useMemo(() => connection ? new DeviceApi(connection) : mockDevice, [connection, mockDevice]);
 
@@ -50,6 +68,9 @@ export function App() {
   switch (currentPage) {
     case "menu":
       page = <MainMenu onClick={setPage} connection={connection} setConnection={setConnection} device={device} devMode={devMode} setDevMode={setDevMode} />;
+      break;
+    case "controls":
+      page = device && <AdvancedControls device={device} />;
       break;
     case "controls-legacy":
       page = device && <InteractiveControls device={device} />;

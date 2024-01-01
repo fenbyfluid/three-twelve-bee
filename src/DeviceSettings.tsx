@@ -1,6 +1,6 @@
 import { Button, ButtonProps, ControlGroup, FormGroup, H3, SegmentedControl, TabsExpander } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useState } from "react";
-import { AdvancedParameterSlider } from "./AdvancedParameterSlider";
+import { ParameterSlider } from "./ParameterSlider";
 import {
   DEFAULT_SETTINGS,
   DeviceApi,
@@ -33,28 +33,28 @@ function AdvancedParametersPanel({ settings, style }: { settings: Settings, styl
 
   return <PanelCard label="Advanced Parameters" style={cardStyle}>
     <FormGroup label="Ramp Level" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={rampLevelValue} onRelease={value => settings.setRampLevelParameter(value)} min={205} max={255} labelRenderer={v => `${v - 155}%`} />
+      <ParameterSlider value={rampLevelValue} onRelease={value => settings.setRampLevelParameter(value)} min={205} max={255} labelRenderer={v => `${v - 155}%`} />
     </FormGroup>
     <FormGroup label="Ramp Time" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={rampTimeValue} onRelease={value => settings.setRampTimeParameter(value)} min={1} max={120} labelRenderer={v => `${v}s`} />
+      <ParameterSlider value={rampTimeValue} onRelease={value => settings.setRampTimeParameter(value)} min={1} max={120} labelRenderer={v => `${v}s`} />
     </FormGroup>
     <FormGroup label="Depth" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={depthValue} onRelease={value => settings.setDepthParameter(value)} min={165} max={255} labelRenderer={v => `${v - 155}`} />
+      <ParameterSlider value={depthValue} onRelease={value => settings.setDepthParameter(value)} min={165} max={255} labelRenderer={v => `${v - 155}`} />
     </FormGroup>
     <FormGroup label="Tempo" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={tempoValue} onRelease={value => settings.setTempoParameter(value)} min={1} max={100} />
+      <ParameterSlider value={tempoValue} onRelease={value => settings.setTempoParameter(value)} min={1} max={100} />
     </FormGroup>
     <FormGroup label="Frequency" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={frequencyValue} onRelease={value => settings.setFrequencyParameter(value)} min={250} max={15} labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
+      <ParameterSlider value={frequencyValue} onRelease={value => settings.setFrequencyParameter(value)} min={250} max={15} labelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} />
     </FormGroup>
     <FormGroup label="Effect" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={effectValue} onRelease={value => settings.setEffectParameter(value)} min={1} max={100} />
+      <ParameterSlider value={effectValue} onRelease={value => settings.setEffectParameter(value)} min={1} max={100} />
     </FormGroup>
     <FormGroup label="Width" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={widthValue} onRelease={value => settings.setWidthParameter(value)} min={70} max={250} labelRenderer={v => `${v}ms`} />
+      <ParameterSlider value={widthValue} onRelease={value => settings.setWidthParameter(value)} min={70} max={250} labelRenderer={v => `${v}\u00b5s`} />
     </FormGroup>
     <FormGroup label="Pace" style={{ marginBottom: 10 }}>
-      <AdvancedParameterSlider value={paceValue} onRelease={value => settings.setPaceParameter(value)} min={1} max={100} />
+      <ParameterSlider value={paceValue} onRelease={value => settings.setPaceParameter(value)} min={1} max={100} />
     </FormGroup>
   </PanelCard>;
 }

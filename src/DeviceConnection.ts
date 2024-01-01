@@ -10,6 +10,12 @@
 
 // TODO: Implement a periodic sync if no bytes have been received recently, timeout connection.
 
+// TODO: Rework writeAndReadResponse to handle the command lengths and automatically buffer the reads.
+//       We can have an enum of the command codes which'll give us a much cleaner low-level API.
+
+// TODO: If we're careful to track the buffer usage on the device side, we should be able to stream
+//       commands much quicker - it should also be ok to write partial commands but will need to verify.
+
 export class ChecksumError extends Error {
 
 }
@@ -112,8 +118,12 @@ export class DeviceConnection extends EventTarget {
       data = [data];
     }
 
+    if (data.length > 8) {
+      throw new Error("Write data too long.");
+    }
+
     const response = await this.writeAndReadResponse([
-      0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...data,
+      0x3D + (data.length << 4), (address >> 8) & 0xFF, address & 0xFF, ...(data.map(value => value & 0xFF)),
     ], 1);
 
     if (response[0] === 0x07) {

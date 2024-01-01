@@ -1,24 +1,26 @@
-import { Slider, SliderProps } from "@blueprintjs/core";
+import { MultiSlider, SliderBaseProps } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useState } from "react";
-import "./AdvancedParameterSlider.css";
+import "./ParameterSlider.css";
 
-type AdvancedParameterSliderProps = {
+type ParameterSliderProps = {
+  value?: number,
   min: number,
   max: number,
   labelRenderer?: (v: number) => string,
+  onChange?: (value: number) => void,
+  onRelease?: (value: number) => void,
 };
 
-export function AdvancedParameterSlider({
+export function ParameterSlider({
   min,
   max,
   labelRenderer,
   value,
-  initialValue,
   onChange,
   onRelease,
   className,
   ...props
-}: AdvancedParameterSliderProps & Omit<SliderProps, "min" | "max" | "stepSize" | "labelStepSize" | "labelValues" | "labelRenderer">) {
+}: ParameterSliderProps & Omit<SliderBaseProps, "min" | "max" | "stepSize" | "labelStepSize" | "labelValues" | "labelRenderer">) {
   const inverted = min > max;
   const sliderMin = inverted ? max : min;
   const sliderMax = inverted ? min : max;
@@ -28,7 +30,7 @@ export function AdvancedParameterSlider({
   useEffect(() => {
     const defaultValue = (value !== undefined) ? (inverted ? ((sliderMin + sliderMax) - value) : value) : undefined;
     setSliderValue(defaultValue);
-  }, [value]);
+  }, [value, inverted, sliderMin, sliderMax]);
 
   const sliderLabelRenderer = useCallback((sliderValue: number) => {
     const value = inverted ? ((sliderMin + sliderMax) - sliderValue) : sliderValue;
@@ -48,8 +50,6 @@ export function AdvancedParameterSlider({
     onRelease && onRelease(value);
   }, [onRelease, inverted, sliderMin, sliderMax]);
 
-  const sliderInitialValue = (initialValue !== undefined) ? (inverted ? ((sliderMin + sliderMax) - initialValue) : initialValue) : undefined;
-
   const percentage = sliderValue !== undefined ? (sliderValue - sliderMin) / (sliderMax - sliderMin) : undefined;
   const keepAway = 0.15;
   const labelValues = [];
@@ -60,21 +60,25 @@ export function AdvancedParameterSlider({
     labelValues.push(sliderMax);
   }
 
+  const valueIsValid = sliderValue !== undefined && sliderValue >= sliderMin && sliderValue <= sliderMax;
+
   // TODO: Make a custom slider that keeps the handles inside the track.
   // TODO: ... and supports snapping to the display values.
-  // TODO: ... and show no handle if value undefined.
-  return <Slider
+  // TODO: ... and can hide the handle without breaking clicking the track to set the value.
+  return <MultiSlider
     min={sliderMin}
     max={sliderMax}
-    value={sliderValue ?? sliderMin}
-    initialValue={sliderInitialValue}
-    showTrackFill={sliderValue !== sliderInitialValue}
     stepSize={1}
     labelValues={labelValues}
     labelRenderer={sliderLabelRenderer}
-    onChange={onSliderChange}
-    onRelease={onSliderRelease}
-    className={`${className ?? ""} advanced-param-slider`}
+    className={`${className ?? ""} param-slider`}
     {...props}
-  />;
+  >
+    {valueIsValid ? <MultiSlider.Handle
+      value={sliderValue}
+      intentBefore="primary"
+      onChange={onSliderChange}
+      onRelease={onSliderRelease}
+    /> : undefined}
+  </MultiSlider>;
 }

@@ -252,6 +252,23 @@ const BUTTONS: FlagInfo[] = [
   { mask: 0b10000000, description: "Menu" },
 ];
 
+const GATE_POLARITY: { [key: number]: string } = {
+  0b00: "No Pulses",
+  0b01: "Negative Pulses",
+  0b10: "Positive Pulses",
+  0b11: "Biphasic Pulses",
+};
+
+const GATE_VALUE: FlagInfo[] = [
+  { mask: 0b00000001, description: "Gate On" }, // 0:
+  { mask: 0b00000110, description: "Polarity", values: GATE_POLARITY }, // 1,2: Stroke toggles between these - output polarity control - chan a becomes r16 bit 0 and 1
+  { mask: 0b00001000, description: "Alternate Polarity" }, // 3: Never seen these set - pulses alternate in polarity at half frequency
+  { mask: 0b00010000, description: "Invert Polarity" }, // 4: Never seen these set - chan a becomes r16 bit 3
+  { mask: 0b00100000, description: "Audio Controls Frequency" }, // 5: Set in Audio 3 only
+  { mask: 0b01000000, description: "Audio Controls Intensity" },   // 6: Set in all audio modes
+  { mask: 0b10000000, description: "Unknown Phase 3" }, // 7: Set for only Channel B in Phase 3 (along with "Audio 3" flag)
+];
+
 const GATE_TIMERS: { [key: number]: string } = {
   0b00: "No gating",
   0b01: "Use the `0x4088` (244Hz) timer for gating",
@@ -360,7 +377,7 @@ const ACTION_AT_MIN_MAX: { [key: number]: string } = {
 
   0xFC: "Stop",
   0xFD: "Loop",
-  0xFE: "Reverse and Toggle Gate",
+  0xFE: "Reverse and Toggle Polarity",
   0xFF: "Reverse",
 };
 
@@ -436,7 +453,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x408D, description: "Random Number Min" },
   { address: 0x408E, description: "Random Number Max" },
   { address: 0x408F, description: "Module to load if audio triggered", values: MODULES },
-  { address: 0x4090, description: "Channel A: Current Gate Value" },
+  { address: 0x4090, description: "Channel A: Current Gate Value", flags: GATE_VALUE },
   { address: 0x4091, description: "Module wants to change channel A gates" },
   { address: 0x4092, description: "Module wants to change channel B gates" },
   // { address: 0x4093, description: "Unused" },
@@ -495,7 +512,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   // 0x4188 - 0x418B Unused - bytes above here are initialized at routine start
   { address: 0x418C, description: "Channel B: Module temporary byte store" },
   // 0x418D - 0x418F Unused
-  { address: 0x4190, description: "Channel B: Current Gate Value (0 when no output)" },
+  { address: 0x4190, description: "Channel B: Current Gate Value", flags: GATE_VALUE },
   // 0x4191 - 0x4193 Unused
   { address: 0x4194, description: "Channel B: Next module timer current" },
   { address: 0x4195, description: "Channel B: Next module timer max" },

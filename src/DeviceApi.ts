@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { encodeInstruction, Instruction } from "./Module";
 
+export enum TimerAction {
+  Stop = 0xFC,
+  Loop,
+  ReverseAndTogglePolarity,
+  Reverse,
+}
+
 export enum TimerSelection {
   None,
   Fast,
@@ -8,30 +15,59 @@ export enum TimerSelection {
   Slow,
 }
 
+export namespace TimerSelection {
+  /**
+   * Returns the tick interval of the specified timer in milliseconds.
+   */
+  export function getTimerInterval(timer: TimerSelection): number {
+    let divisor = 0;
+    switch (timer) {
+      case TimerSelection.Fast:
+        divisor = 1;
+        break;
+      case TimerSelection.Medium:
+        divisor = 8;
+        break;
+      case TimerSelection.Slow:
+        divisor = 256;
+        break;
+      default:
+        return 0;
+    }
+
+    // The main timer ticks at 244 Hz.
+    return (1 / (244 / divisor)) * 1000;
+  }
+}
+
 export enum SourceSelection {
   SetValue,
   AdvancedParameter,
   MultiAdjust,
-  OtherChannel,
+  OtherChannel, // Only valid for channel values, not gates.
 }
 
-export class ValueSelectFlags {
-  public invertValue: boolean;
-  public rateSource: SourceSelection;
-  public invertMin: boolean;
-  public valOrMinSource: SourceSelection;
-  public timerSelection: TimerSelection;
+export interface ValueSelectFlags {
+  invertRate: boolean;
+  rateSource: SourceSelection;
+  invertValOrMin: boolean;
+  valOrMinSource: SourceSelection;
+  timerSelection: TimerSelection;
+}
 
-  public constructor(value: number) {
-    this.invertValue = (value & 0b10000000) !== 0;
-    this.rateSource = (value & 0b01100000) >> 5;
-    this.invertMin = (value & 0b00010000) !== 0;
-    this.valOrMinSource = (value & 0b00001100) >> 2;
-    this.timerSelection = (value & 0b00000011);
+export namespace ValueSelectFlags {
+  export function fromValue(value: number): ValueSelectFlags {
+    return {
+      invertRate: (value & 0b10000000) !== 0,
+      rateSource: (value & 0b01100000) >> 5,
+      invertValOrMin: (value & 0b00010000) !== 0,
+      valOrMinSource: (value & 0b00001100) >> 2,
+      timerSelection: (value & 0b00000011),
+    };
   }
 
-  public toValue(): number {
-    return ((this.invertValue ? 1 : 0) << 7) | (this.rateSource << 5) | ((this.invertMin ? 1 : 0) << 4) | (this.valOrMinSource << 2) | this.timerSelection;
+  export function toValue(flags: ValueSelectFlags): number {
+    return ((flags.invertRate ? 1 : 0) << 7) | (flags.rateSource << 5) | ((flags.invertValOrMin ? 1 : 0) << 4) | (flags.valOrMinSource << 2) | flags.timerSelection;
   }
 }
 
@@ -54,29 +90,74 @@ export class ChannelVariable {
   public readonly setRate = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 3, value);
   public readonly getStep = async (): Promise<number> => this.connection.peek(this.baseAddress + 4);
   public readonly setStep = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 4, value);
-  public readonly getActionAtMin = async (): Promise<number> => this.connection.peek(this.baseAddress + 5);
-  public readonly setActionAtMin = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 5, value);
-  public readonly getActionAtMax = async (): Promise<number> => this.connection.peek(this.baseAddress + 6);
-  public readonly setActionAtMax = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 6, value);
-  public readonly getSelect = async (): Promise<ValueSelectFlags> => this.connection.peek(this.baseAddress + 7).then(value => new ValueSelectFlags(value));
-  public readonly setSelect = async (flags: ValueSelectFlags): Promise<void> => this.connection.poke(this.baseAddress + 7, flags.toValue());
+  public readonly getActionAtMin = async (): Promise<TimerAction> => this.connection.peek(this.baseAddress + 5);
+  public readonly setActionAtMin = async (action: TimerAction): Promise<void> => this.connection.poke(this.baseAddress + 5, action);
+  public readonly getActionAtMax = async (): Promise<TimerAction> => this.connection.peek(this.baseAddress + 6);
+  public readonly setActionAtMax = async (action: TimerAction): Promise<void> => this.connection.poke(this.baseAddress + 6, action);
+  public readonly getSelect = async (): Promise<ValueSelectFlags> => this.connection.peek(this.baseAddress + 7).then(value => ValueSelectFlags.fromValue(value));
+  public readonly setSelect = async (flags: ValueSelectFlags): Promise<void> => this.connection.poke(this.baseAddress + 7, ValueSelectFlags.toValue(flags));
   public readonly getTimer = async (): Promise<number> => this.connection.peek(this.baseAddress + 8);
   public readonly setTimer = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 8, value);
 }
 
-export class GateSelectFlags {
-  public onSource: SourceSelection;
-  public offSource: SourceSelection;
-  public timerSelection: TimerSelection;
+export enum GatePulsePolarity {
+  None,
+  Negative,
+  Positive,
+  Biphasic,
+}
 
-  public constructor(value: number) {
-    this.offSource = (value & 0b11100000) >> 5;
-    this.onSource = (value & 0b00011100) >> 2;
-    this.timerSelection = (value & 0b00000011);
+export interface GateValueFlags {
+  unknownPhase3: boolean;
+  audioControlsIntensity: boolean;
+  audioControlsFrequency: boolean;
+  invertPolarity: boolean;
+  alternatePolarity: boolean;
+  pulsePolarity: GatePulsePolarity;
+  outputEnabled: boolean;
+}
+
+export namespace GateValueFlags {
+  export function fromValue(value: number): GateValueFlags {
+    return {
+      unknownPhase3: (value & 0b10000000) !== 0,
+      audioControlsIntensity: (value & 0b01000000) !== 0,
+      audioControlsFrequency: (value & 0b00100000) !== 0,
+      invertPolarity: (value & 0b00010000) !== 0,
+      alternatePolarity: (value & 0b00001000) !== 0,
+      pulsePolarity: (value & 0b00000110) >> 1,
+      outputEnabled: (value & 0b00000001) !== 0,
+    };
   }
 
-  public toValue(): number {
-    return (this.offSource << 5) | (this.onSource << 2) | this.timerSelection;
+  export function toValue(flags: GateValueFlags): number {
+    return ((flags.unknownPhase3 ? 1 : 0) << 7) |
+      ((flags.audioControlsIntensity ? 1 : 0) << 6) |
+      ((flags.audioControlsFrequency ? 1 : 0) << 5) |
+      ((flags.invertPolarity ? 1 : 0) << 4) |
+      ((flags.alternatePolarity ? 1 : 0) << 3) |
+      (flags.pulsePolarity << 1) |
+      (flags.outputEnabled ? 1 : 0);
+  }
+}
+
+export interface GateSelectFlags {
+  onSource: SourceSelection;
+  offSource: SourceSelection;
+  timerSelection: TimerSelection;
+}
+
+export namespace GateSelectFlags {
+  export function fromValue(value: number): GateSelectFlags {
+    return {
+      onSource: (value & 0b11100000) >> 5,
+      offSource: (value & 0b00011100) >> 2,
+      timerSelection: (value & 0b00000011),
+    };
+  }
+
+  export function toValue(flags: GateSelectFlags): number {
+    return (flags.onSource << 5) | (flags.offSource << 2) | flags.timerSelection;
   }
 }
 
@@ -99,12 +180,16 @@ export class Channel {
     this.width = new ChannelVariable(connection, baseAddress + 0xB7);
   }
 
+  public readonly getGateValue = async (): Promise<GateValueFlags> => this.connection.peek(this.baseAddress + 0x90).then(value => GateValueFlags.fromValue(value));
+  public readonly setGateValue = async (flags: GateValueFlags): Promise<void> => this.connection.poke(this.baseAddress + 0x90, GateValueFlags.toValue(flags));
   public readonly getGateOnTime = async (): Promise<number> => this.connection.peek(this.baseAddress + 0x98);
   public readonly setGateOnTime = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 0x98, value);
   public readonly getGateOffTime = async (): Promise<number> => this.connection.peek(this.baseAddress + 0x99);
   public readonly setGateOffTime = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 0x99, value);
-  public readonly getGateSelect = async (): Promise<GateSelectFlags> => this.connection.peek(this.baseAddress + 0x9A).then(value => new GateSelectFlags(value));
-  public readonly setGateSelect = async (flags: GateSelectFlags): Promise<void> => this.connection.poke(this.baseAddress + 0x9A, flags.toValue());
+  public readonly getGateSelect = async (): Promise<GateSelectFlags> => this.connection.peek(this.baseAddress + 0x9A).then(value => GateSelectFlags.fromValue(value));
+  public readonly setGateSelect = async (flags: GateSelectFlags): Promise<void> => this.connection.poke(this.baseAddress + 0x9A, GateSelectFlags.toValue(flags));
+  public readonly getGateTimer = async (): Promise<number> => this.connection.peek(this.baseAddress + 0x9B);
+  public readonly setGateTimer = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 0x9B, value);
 }
 
 export enum Mode {
@@ -299,6 +384,7 @@ export class DeviceApi {
         }
 
         // We add the terminator to each instruction, in case we're interrupted.
+        // TODO: We could optimise writes here by batching 8 bytes at a time.
         await this.connection.poke(0x40C0 + cursor, [...encoded, 0x00]);
         cursor += encoded.length;
       }
@@ -373,4 +459,13 @@ export function usePolledGetter<T>(getter: (() => Promise<T>) | false): T | unde
   }, [getter]);
 
   return cachedValue;
+}
+
+// TODO: This is just a stub. What we want is usePolledGetter but with more control over the cache and polling for improved perf.
+//       e.g. disabled or low-rate polling, clear / update cache on setter used, on-demand cache clearing.
+export function useDeviceState<T, Ts extends ((value: T) => Promise<void>) | undefined, Tf extends T | undefined>(getter: (() => Promise<T>) | false, setter: Ts, fallback: Tf): [T | Tf, Ts] {
+  let value = usePolledGetter(getter);
+  let ret = (value !== undefined) ? value : fallback;
+
+  return [ret, setter];
 }

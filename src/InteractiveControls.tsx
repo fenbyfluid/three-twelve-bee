@@ -44,10 +44,10 @@ interface ChannelControlsProps {
 
 function ChannelControls(props: ChannelControlsProps) {
   const channel = props.channel === "A" ? props.device.channelA : props.device.channelB;
-  const gateSelect = usePolledGetter(channel.getGateSelect) ?? new GateSelectFlags(0);
-  const intensitySelect = usePolledGetter(channel.intensity.getSelect) ?? new ValueSelectFlags(0);
-  const frequencySelect = usePolledGetter(channel.frequency.getSelect) ?? new ValueSelectFlags(0);
-  const widthSelect = usePolledGetter(channel.width.getSelect) ?? new ValueSelectFlags(0);
+  const gateSelect = usePolledGetter(channel.getGateSelect) ?? GateSelectFlags.fromValue(0);
+  const intensitySelect = usePolledGetter(channel.intensity.getSelect) ?? ValueSelectFlags.fromValue(0);
+  const frequencySelect = usePolledGetter(channel.frequency.getSelect) ?? ValueSelectFlags.fromValue(0);
+  const widthSelect = usePolledGetter(channel.width.getSelect) ?? ValueSelectFlags.fromValue(0);
 
   return <div style={{ flex: 1, [props.channel === "A" ? "paddingRight": "paddingLeft"]: 10 }}>
     <H5 style={{ padding: "0 20px" }}>

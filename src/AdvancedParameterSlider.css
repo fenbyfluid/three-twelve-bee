@@ -1,8 +1,0 @@
-.bp5-slider.advanced-param-slider > .bp5-slider-axis > .bp5-slider-label {
-    transform: translate(0, 20px);
-    padding: 2px 0;
-}
-
-.bp5-slider.advanced-param-slider > .bp5-slider-axis > .bp5-slider-label[style="left: 100%;"] {
-    transform: translate(-100%, 20px);
-}

@@ -7,22 +7,28 @@
     width: fit-content;
     padding: 2px 10px;
     background-color: white;
-    top: -11px;
+    top: 0;
 }
 
 .panel-card-label-align-left {
     left: 10px;
+    transform: translateY(-52%);
 }
 
 .panel-card-label-align-center {
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -52%);
 }
 
 .panel-card-label-align-right {
     right: 10px;
+    transform: translateY(-52%);
 }
 
 .bp5-dark .panel-card-label {
     background-color: #394b59;
+}
+
+.panel-card-label .bp5-control-group:not(.bp5-vertical) > :not(:last-child) {
+    margin-right: 7px;
 }
