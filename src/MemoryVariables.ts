@@ -117,6 +117,27 @@ export const MODES: { [key: number]: string } = {
   0xD9: "Pace Adjust?",
 };
 
+/*
+ * This is with a sine wave input into Audio 3, all ranges are inclusive.
+ * Pulse width comes from the Width advanced parameter.
+ * 0 - 4 Hz there is no response.
+ * 5 - 111 is glitchy with occasional double pulses.
+ * 112 - 321 the output pulse frequency is an exact match
+ * 322 - 325 is glitchy with occasional half pulses.
+ * 326 - 646 divides the output frequency by 2 (163 - 323)
+ * 647 - 652 is glitchy
+ * 653 - 970 div 3 (217.67 - 323.33)
+ * 971 - 974 is glitchy
+ * 975 - 1293 div 4 (243.75 - 323.25)
+ * 1294 - 1299 is glitchy
+ * 1300 - 1616 div 5 (260 - 323.2)
+ * 1617 - 1623 is glitchy
+ * 1624 - 1941 div 6 (270.67 - 323.5)
+ * 1942 - 1948 is glitchy
+ * 1949 - div 7 (278.43 - )
+ * This pattern continues.
+ */
+
 export const REGISTER_VARIABLES: VariableInfo[] = [
   { address: 0x4000, name: "r0" },
   { address: 0x4001, name: "r1" },
@@ -135,7 +156,7 @@ export const REGISTER_VARIABLES: VariableInfo[] = [
   { address: 0x400E, name: "r14", description: "Copied from `min(50, 0x41B7)`" },
   {
     address: 0x400F, name: "r15", description: "ADC disable and other flags", flags: [
-      { mask: 0b00000001, description: "Disable output level controls" },
+      { mask: 0b00000001, description: "Disable front panel knobs" },
       { mask: 0b00000010, description: "If set then we jump to a new module number given in `0x4084`" },
       { mask: 0b00000100, description: "Program excluded from slave link" },
       { mask: 0b00001000, description: "Disable Multi Adjust control" },
@@ -265,7 +286,7 @@ const GATE_VALUE: FlagInfo[] = [
   { mask: 0b00001000, description: "Alternate Polarity" }, // 3: Never seen these set - pulses alternate in polarity at half frequency
   { mask: 0b00010000, description: "Invert Polarity" }, // 4: Never seen these set - chan a becomes r16 bit 3
   { mask: 0b00100000, description: "Audio Controls Frequency" }, // 5: Set in Audio 3 only
-  { mask: 0b01000000, description: "Audio Controls Intensity" },   // 6: Set in all audio modes
+  { mask: 0b01000000, description: "Audio Controls Intensity" }, // 6: Set in all audio modes
   { mask: 0b10000000, description: "Unknown Phase 3" }, // 7: Set for only Channel B in Phase 3 (along with "Audio 3" flag)
 ];
 
@@ -425,13 +446,13 @@ export const RAM_VARIABLES: VariableInfo[] = [
   { address: 0x4082, description: "Retry counter when communicating with slave" },
   {
     address: 0x4083, description: "Output Control Flags", flags: [
-      { mask: 0b00000001, description: "Phase Control" },
-      { mask: 0b00000010, description: "Mute" },
-      { mask: 0b00000100, description: "Phase Control 2" },
-      { mask: 0b00001000, description: "Phase Control 3" },
-      { mask: 0b00010000, description: "Unused" },
-      { mask: 0b00100000, description: "Disable Front Panel Switches" },
-      { mask: 0b01000000, description: "Mono Mode (off=Stereo)" },
+      { mask: 0b00000001, description: "Phase Control" }, // Has something to do with updating MA value - Phase 1, Phase 2
+      { mask: 0b00000010, description: "Wait for Audio Trigger" },
+      { mask: 0b00000100, description: "Phase Control 2" }, // Audio 3, Phase 1, Phase 2
+      { mask: 0b00001000, description: "Phase Control 3" }, // Phase 3
+      { mask: 0b00010000, description: "Split Mode" }, // Not observable via serial, only for Channel B module execution?
+      { mask: 0b00100000, description: "Disable Front Panel Buttons" },
+      { mask: 0b01000000, description: "Mono Audio Intensity" },
       { mask: 0b10000000, description: "Unused" },
     ],
   },

@@ -164,21 +164,26 @@ export namespace GateSelectFlags {
 export class Channel {
   private readonly connection: DeviceConnection;
   private readonly baseAddress: number;
+  private readonly levelAddress: number;
 
   public readonly ramp: ChannelVariable;
   public readonly intensity: ChannelVariable;
   public readonly frequency: ChannelVariable;
   public readonly width: ChannelVariable;
 
-  public constructor(connection: DeviceConnection, baseAddress: number) {
+  public constructor(connection: DeviceConnection, baseAddress: number, levelAddress: number) {
     this.connection = connection;
     this.baseAddress = baseAddress;
+    this.levelAddress = levelAddress;
 
     this.ramp = new ChannelVariable(connection, baseAddress + 0x9C);
     this.intensity = new ChannelVariable(connection, baseAddress + 0xA5);
     this.frequency = new ChannelVariable(connection, baseAddress + 0xAE);
     this.width = new ChannelVariable(connection, baseAddress + 0xB7);
   }
+
+  public readonly getLevel = async (): Promise<number> => this.connection.peek(this.levelAddress);
+  public readonly setLevel = async (value: number): Promise<void> => this.connection.poke(this.levelAddress, value);
 
   public readonly getGateValue = async (): Promise<GateValueFlags> => this.connection.peek(this.baseAddress + 0x90).then(value => GateValueFlags.fromValue(value));
   public readonly setGateValue = async (flags: GateValueFlags): Promise<void> => this.connection.poke(this.baseAddress + 0x90, GateValueFlags.toValue(flags));
@@ -335,6 +340,71 @@ export class Settings implements ReadonlySettings {
   public readonly setPaceParameter = async (value: number): Promise<void> => this.connection.poke(this.baseAddress + 12, value);
 }
 
+export interface ControlFlags {
+  unusedBits: number;
+  disableMultiAdjustControl: boolean;
+  programExcludedFromSlaveLink: boolean;
+  pendingModuleChange: boolean;
+  disableKnobs: boolean;
+}
+
+export namespace ControlFlags {
+  export function fromValue(value: number): ControlFlags {
+    return {
+      unusedBits: (value & 0b11110000) >> 4,
+      disableMultiAdjustControl: (value & 0b00001000) !== 0,
+      programExcludedFromSlaveLink: (value & 0b00000100) !== 0,
+      pendingModuleChange: (value & 0b00000010) !== 0,
+      disableKnobs: (value & 0b00000001) !== 0,
+    };
+  }
+
+  export function toValue(flags: ControlFlags): number {
+    return (flags.unusedBits << 4) |
+      ((flags.disableMultiAdjustControl ? 1 : 0) << 3) |
+      ((flags.programExcludedFromSlaveLink ? 1 : 0) << 2) |
+      ((flags.pendingModuleChange ? 1 : 0) << 1) |
+      (flags.disableKnobs ? 1 : 0);
+  }
+}
+
+export interface OutputFlags {
+  unused: boolean;
+  monoAudioIntensity: boolean;
+  disableButtons: boolean;
+  splitMode: boolean;
+  phaseControl3: boolean;
+  phaseControl2: boolean;
+  waitForAudioTrigger: boolean;
+  phaseControl: boolean; // Or something MA related?
+}
+
+export namespace OutputFlags {
+  export function fromValue(value: number): OutputFlags {
+    return {
+      unused: (value & 0b10000000) !== 0,
+      monoAudioIntensity: (value & 0b01000000) !== 0,
+      disableButtons: (value & 0b00100000) !== 0,
+      splitMode: (value & 0b00010000) !== 0,
+      phaseControl3: (value & 0b00001000) !== 0,
+      phaseControl2: (value & 0b00000100) !== 0,
+      waitForAudioTrigger: (value & 0b00000010) !== 0,
+      phaseControl: (value & 0b00000001) !== 0,
+    };
+  }
+
+  export function toValue(flags: OutputFlags): number {
+    return ((flags.unused ? 1 : 0) << 7) |
+      ((flags.monoAudioIntensity ? 1 : 0) << 6) |
+      ((flags.disableButtons ? 1 : 0) << 5) |
+      ((flags.splitMode ? 1 : 0) << 4) |
+      ((flags.phaseControl3 ? 1 : 0) << 3) |
+      ((flags.phaseControl2 ? 1 : 0) << 2) |
+      ((flags.waitForAudioTrigger ? 1 : 0) << 1) |
+      (flags.phaseControl ? 1 : 0);
+  }
+}
+
 export interface DeviceConnection {
   peek(address: number): Promise<number>;
   poke(address: number, data: number | number[]): Promise<void>;
@@ -352,12 +422,36 @@ export class DeviceApi {
   public constructor(connection: DeviceConnection) {
     this.connection = connection;
 
-    this.channelA = new Channel(connection, 0x4000);
-    this.channelB = new Channel(connection, 0x4100);
+    this.channelA = new Channel(connection, 0x4000, 0x4064);
+    this.channelB = new Channel(connection, 0x4100, 0x4065);
 
     this.currentSettings = new Settings(connection, 0x41F3);
     this.savedSettings = new Settings(connection, 0x8008);
   }
+
+  public readonly getControlFlags = async (): Promise<ControlFlags> => this.connection.peek(0x400F).then(value => ControlFlags.fromValue(value));
+  public readonly setControlFlags = async (flags: ControlFlags): Promise<void> => this.connection.poke(0x400F, ControlFlags.toValue(flags));
+
+  public readonly getButtonActions = async (): Promise<{ up: number, down: number, menu: number, ok: number }> => ({
+    up: await this.connection.peek(0x4013),
+    down: await this.connection.peek(0x4014),
+    menu: await this.connection.peek(0x4015),
+    ok: await this.connection.peek(0x4016),
+  });
+  public readonly setButtonActions = async (actions: { up: number, down: number, menu: number, ok: number }): Promise<void> =>
+    this.connection.poke(0x4013, [actions.up, actions.down, actions.menu, actions.ok]);
+
+  // These are reset when the routine changes and may be controlled by some routines.
+  // TODO: The phase flags aren't well understood enough to expose in the UI currently - enabling Phase 3 on a blank mode will output dangerously long pulses on B.
+  public readonly getOutputFlags = async (): Promise<OutputFlags> => this.connection.peek(0x4083).then(value => OutputFlags.fromValue(value));
+  public readonly setOutputFlags = async (flags: OutputFlags): Promise<void> => this.connection.poke(0x4083, OutputFlags.toValue(flags));
+
+  public readonly getMultiAdjustMin = async (): Promise<number> => this.connection.peek(0x4086);
+  public readonly setMultiAdjustMin = async (value: number): Promise<void> => this.connection.poke(0x4086, value);
+  public readonly getMultiAdjustMax = async (): Promise<number> => this.connection.peek(0x4087);
+  public readonly setMultiAdjustMax = async (value: number): Promise<void> => this.connection.poke(0x4087, value);
+  public readonly getMultiAdjustValue = async (): Promise<number> => this.connection.peek(0x420D);
+  public readonly setMultiAdjustValue = async (value: number): Promise<void> => this.connection.poke(0x420D, value);
 
   public readonly getCurrentMode = async (): Promise<Mode> => this.connection.peek(0x407B);
   public readonly switchToMode = async (mode: Mode): Promise<void> => {

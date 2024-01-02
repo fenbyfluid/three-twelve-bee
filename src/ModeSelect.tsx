@@ -50,7 +50,7 @@ export function ModeSelect({ mode, onModeChanged, topMode }: ModeSelectProps) {
     onItemSelect={({ value }) => onModeChanged && onModeChanged(value)}
     fill={true}
     filterable={false}
-    popoverProps={{ matchTargetWidth: true }}
+    popoverProps={{ minimal: true, matchTargetWidth: true }}
     popoverContentProps={{ className: "mode-select" }}
   >
     <Button text={(mode !== undefined ? Mode.getDisplayName(mode) : undefined) ?? "\u00a0"} rightIcon="caret-down" fill={true} alignText="left" />

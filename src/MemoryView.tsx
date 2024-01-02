@@ -256,7 +256,7 @@ function DeviceMemoryDump(props: DeviceMemoryDumpProps) {
         // Whether to wait for each command to complete.
         // Bulk-sending the commands seems to break when the device is busy.
         // TODO: See thoughts in DeviceConnection.
-        if (true) {
+        if (false) {
           readPromise = readPromise.then(peekPromise);
         } else {
           readPromise = peekPromise();

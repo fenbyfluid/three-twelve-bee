@@ -1,10 +1,11 @@
 import { Button, ControlGroup, FormGroup, H3, H5, Label, MenuItem, Switch, TabsExpander } from "@blueprintjs/core";
 import type { IconName } from "@blueprintjs/icons";
 import { ItemRenderer, Select, SelectProps } from "@blueprintjs/select";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Channel,
   ChannelVariable,
+  ControlFlags,
   DeviceApi,
   GatePulsePolarity,
   GateSelectFlags,
@@ -15,6 +16,7 @@ import {
   useDeviceState,
   ValueSelectFlags,
 } from "./DeviceApi";
+import { ModeSelect } from "./ModeSelect";
 import { PanelCard } from "./PanelCard";
 import { ParameterSlider } from "./ParameterSlider";
 import "./AdvancedControls.css";
@@ -85,16 +87,17 @@ interface ValueSliderProps {
   min?: number;
   max?: number;
   labelRenderer?: (v: number) => string;
+  disabled?: boolean;
   getter: () => Promise<number>;
   setter: (value: number) => Promise<void>;
 }
 
-function ValueSlider({ min, max, labelRenderer, getter, setter }: ValueSliderProps) {
+function ValueSlider({ min, max, labelRenderer, disabled, getter, setter }: ValueSliderProps) {
   const [value, setValue] = useDeviceState(getter, setter, 0);
 
   return <ParameterSlider
     min={min ?? 0} max={max ?? 255} value={value}
-    labelRenderer={labelRenderer}
+    labelRenderer={labelRenderer} disabled={disabled}
     onRelease={value => setValue(value)}
   />;
 }
@@ -341,7 +344,26 @@ function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelR
   </PanelCard>;
 }
 
-function ChannelControls(props: { device: DeviceApi, channel: "A" | "B", gridColumn: number }) {
+function ChanelLevelSlider(props: { channel: Channel, disabled?: boolean }) {
+  function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number) {
+    // This is the implementation from the reference page, but it is wrong.
+    // return Math.trunc((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
+
+    const dividend = out_max - out_min;
+    const divisor = in_max - in_min;
+    const delta = x - in_min;
+
+    return (((delta * dividend + ((divisor / 2) | 0)) / divisor) | 0) + out_min;
+  }
+
+  // TODO: This is one that would be much nicer if it updated live when changing the value.
+  return <ValueSlider
+    labelRenderer={v => map(v, 0, 255, 0, 99).toString().padStart(2, "0")} disabled={props.disabled}
+    getter={props.channel.getLevel} setter={props.channel.setLevel}
+  />;
+}
+
+function ChannelControls(props: { device: DeviceApi, channel: "A" | "B", levelControlDisabled?: boolean, gridColumn: number }) {
   const [
     channel,
     otherChannel,
@@ -365,14 +387,123 @@ function ChannelControls(props: { device: DeviceApi, channel: "A" | "B", gridCol
     <H5 style={{ margin: 0, padding: "0 20px", gridColumn: props.gridColumn }}>
       Channel {props.channel}
     </H5>
-    <GateControlsCard channel={channel} otherChannel={otherChannel} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Intensity" valueLabelRenderer={v => `${((v / 255) * 100).toFixed(0)}%`} channelVariable={channel.intensity} otherChannelVariable={otherChannel.intensity} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Frequency" minValue={250} maxValue={15} valueLabelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} channelVariable={channel.frequency} otherChannelVariable={otherChannel.frequency} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Width" minValue={50} maxValue={250 /* Can actually reach 255, but this looks nicer. */} valueLabelRenderer={v => `${v}\u00b5s`} channelVariable={channel.width} otherChannelVariable={otherChannel.width} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
+    <PanelCard label="Level" className="channel-card" style={{ paddingBottom: 10, gridColumn: props.gridColumn }}>
+      <ChanelLevelSlider channel={channel} disabled={props.levelControlDisabled} />
+    </PanelCard>
+    <GateControlsCard channel={channel} otherChannel={otherChannel} {...syncIconProps}
+      style={{ gridColumn: props.gridColumn }} />
+    <VariableControlsCard label="Intensity" valueLabelRenderer={v => `${((v / 255) * 100).toFixed(0)}%`}
+      channelVariable={channel.intensity} otherChannelVariable={otherChannel.intensity} {...syncIconProps}
+      style={{ gridColumn: props.gridColumn }} />
+    <VariableControlsCard label="Frequency" minValue={250} maxValue={15}
+      valueLabelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} channelVariable={channel.frequency}
+      otherChannelVariable={otherChannel.frequency} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
+    <VariableControlsCard label="Width" minValue={50} maxValue={250 /* Can actually reach 255, but this looks nicer. */}
+      valueLabelRenderer={v => `${v}\u00b5s`} channelVariable={channel.width}
+      otherChannelVariable={otherChannel.width} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
   </>;
 }
 
+function FrontPanelButtonsDisableSwitch({ label, device }: { label: string, device: DeviceApi }) {
+  const [checked, setChecked] = useState(false);
+
+  const [buttonActions, setButtonActions] = useDeviceState(device.getButtonActions, device.setButtonActions, { up: 0, down: 0, menu: 0, ok: 0 });
+
+  const areButtonActionsDisabled = buttonActions.up === 1 && buttonActions.down === 1 && buttonActions.menu === 1 && buttonActions.ok === 1;
+  const areButtonActionsDefault = buttonActions.up === 16 && buttonActions.down === 17 && buttonActions.menu === 10 && buttonActions.ok === 1;
+  const areButtonActionsDisabledOrDefault = (buttonActions.up === 1 || buttonActions.up === 16) && (buttonActions.down === 1 || buttonActions.down === 17) && (buttonActions.menu === 1 || buttonActions.menu === 10) && (buttonActions.ok === 1);
+
+  useEffect(() => {
+    if (!checked || areButtonActionsDisabled) {
+      return;
+    }
+
+    if (!areButtonActionsDefault) {
+      return;
+    }
+
+    setButtonActions({ up: 1, down: 1, menu: 1, ok: 1 }).then();
+  }, [checked, buttonActions, setButtonActions, areButtonActionsDisabled, areButtonActionsDefault]);
+
+  const onChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(async (ev) => {
+    setChecked(ev.target.checked);
+
+    if (ev.target.checked) {
+      await setButtonActions({ up: 1, down: 1, menu: 1, ok: 1 });
+    } else {
+      await setButtonActions({ up: 16, down: 17, menu: 10, ok: 1 });
+    }
+  }, [setButtonActions]);
+
+  // Use checked instead of areButtonActionsDisabled to make the UI responsive, but currently everything else waits for the device to ack.
+  return <Switch label={label} alignIndicator="right" checked={areButtonActionsDisabled} disabled={!areButtonActionsDisabledOrDefault} onChange={onChange} />
+}
+
+function MultiAdjustControls({ device, disabled = false, showMinMax = false }: { device: DeviceApi, disabled?: boolean, showMinMax?: boolean }) {
+  // showMinMax is disabled by default because:
+  // TODO: It is very important that max is higher than min, otherwise we trigger a Failure 15.
+  // TODO: When changing min or max we need to re-scale value ourselves if control is enabled.
+  const [min, setMin] = useDeviceState(device.getMultiAdjustMin, device.setMultiAdjustMin, 0);
+  const [max, setMax] = useDeviceState(device.getMultiAdjustMax, device.setMultiAdjustMax, 255);
+  const [value, setValue] = useDeviceState(device.getMultiAdjustValue, device.setMultiAdjustValue, undefined);
+
+  const minMaxControls = showMinMax ? <>
+    <FormGroup label="Multi Adjust Min">
+      <ParameterSlider min={255} max={0} value={max} labelRenderer={v => `${((1 - (v / 255)) * 100).toFixed()}%`} onRelease={value => setMax(value)} />
+    </FormGroup>
+    <FormGroup label="Multi Adjust Max">
+      <ParameterSlider min={255} max={0} value={min} labelRenderer={v => `${((1 - (v / 255)) * 100).toFixed()}%`} onRelease={value => setMin(value)} />
+    </FormGroup>
+  </> : undefined;
+
+  return <>
+    {minMaxControls}
+    <FormGroup label={showMinMax ? "Multi Adjust Value" : "Multi Adjust"}>
+      {/* TODO: We should warn the user that this (and the disable switch) doesn't affect the audio attenuation. */}
+      <ParameterSlider
+        disabled={disabled}
+        min={max} max={min}
+        value={value} onChange={v => setValue(v)}
+        labelRenderer={v => `${((1 - (v - min) / (max - min)) * 100).toFixed(0)}%`}
+      />
+    </FormGroup>
+  </>;
+}
+
+function SharedControlsCard({ device, style, controlFlags, setControlFlags }: { device: DeviceApi, style?: React.CSSProperties, controlFlags: ControlFlags, setControlFlags: (flags: ControlFlags) => Promise<void> }) {
+  const [topMode] = useDeviceState(device.currentSettings.getTopMode, undefined, undefined);
+  const [currentMode, setCurrentMode] = useDeviceState(device.getCurrentMode, device.switchToMode, undefined);
+
+  // TODO: No grid for mobile.
+  const panelStyle = {
+    display: "grid",
+    // gridTemplateColumns: "repeat(3, 1fr)",
+    // gridTemplateColumns: "repeat(2, 1fr) fit-content(100%)",
+    gridTemplateColumns: "1fr 2.4fr 1fr",
+    gap: 30,
+    // paddingTop: 15,
+    paddingBottom: 0,
+    ...style,
+  };
+
+  return <PanelCard style={panelStyle}>
+    <FormGroup label="Current Mode">
+      <ModeSelect mode={currentMode} topMode={topMode} onModeChanged={setCurrentMode} />
+    </FormGroup>
+    <MultiAdjustControls device={device} disabled={!controlFlags.disableKnobs} />
+    <FormGroup>
+      {/* TODO: We could do with a warning when turning this off that it'll jump to the physical level. */}
+      <Switch label="Disable Controls" alignIndicator="right" checked={controlFlags.disableKnobs} onChange={async (ev) => {
+        await setControlFlags({ ...controlFlags, disableKnobs: ev.target.checked });
+      }} />
+      <FrontPanelButtonsDisableSwitch label="Disable Buttons" device={device} />
+    </FormGroup>
+  </PanelCard>
+}
+
 export function AdvancedControls({ device }: { device: DeviceApi }) {
+  const [controlFlags, setControlFlags] = useDeviceState(device.getControlFlags, device.setControlFlags, ControlFlags.fromValue(0));
+
   // TODO: Having to pass the grid column into the child cards explicitly and use the dense auto flow algorithm is unpleasant.
   const bodyStyle: React.CSSProperties = {
     marginTop: 30,
@@ -400,8 +531,9 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
       }}>New Mode</Button>
     </div>
     <div style={bodyStyle}>
-      <ChannelControls device={device} channel="A" gridColumn={1} />
-      <ChannelControls device={device} channel="B" gridColumn={2} />
+      <SharedControlsCard device={device} controlFlags={controlFlags} setControlFlags={setControlFlags} style={{ gridColumn: "span 2" }} />
+      <ChannelControls device={device} channel="A" levelControlDisabled={!controlFlags.disableKnobs} gridColumn={1} />
+      <ChannelControls device={device} channel="B" levelControlDisabled={!controlFlags.disableKnobs} gridColumn={2} />
       <VariableControlsCard
         label="Ramp"
         minValue={155}
