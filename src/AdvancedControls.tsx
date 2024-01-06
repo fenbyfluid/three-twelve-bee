@@ -1,5 +1,17 @@
-import { Button, ControlGroup, FormGroup, H3, H5, Label, MenuItem, Switch, TabsExpander } from "@blueprintjs/core";
-import type { IconName } from "@blueprintjs/icons";
+import {
+  Button,
+  ControlGroup,
+  FormGroup,
+  H3,
+  H5,
+  Label,
+  MenuItem,
+  Switch,
+  TabsExpander,
+  IconName,
+  MaybeElement,
+  Icon, Classes,
+} from "@blueprintjs/core";
 import { ItemRenderer, Select, SelectProps } from "@blueprintjs/select";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -21,16 +33,22 @@ import { PanelCard } from "./PanelCard";
 import { ParameterSlider } from "./ParameterSlider";
 import "./AdvancedControls.css";
 
-type SimpleSelectItem<T> = { label: String, value: T };
+type SimpleSelectItem<T> = { label: String, value: T, icon?: IconName | MaybeElement };
 
 interface SimpleSelectProps<T> {
   value?: T,
 }
 
 function SimpleSelect<T extends React.Key>({ value, items, ...props }: SimpleSelectProps<T> & Omit<SelectProps<SimpleSelectItem<T>>, "itemRenderer" | "filterable" | "popoverProps">) {
-  const itemRenderer: ItemRenderer<SimpleSelectItem<T>> = useCallback(({ label, value }, {ref, handleClick, handleFocus, modifiers}) => <MenuItem
-    key={value} text={label} ref={ref} onClick={handleClick} onFocus={handleFocus} active={modifiers.active} disabled={modifiers.disabled}
-  />, []);
+  const itemRenderer: ItemRenderer<SimpleSelectItem<T>> = useCallback(({ label, value, icon }, {ref, handleClick, handleFocus, modifiers}) => {
+    const labelElement = icon && ((typeof icon === "string") ? <Icon icon={icon} /> : <span aria-hidden={true} className={Classes.ICON}>
+      {icon}
+    </span>);
+
+    return <MenuItem
+      key={value} text={label} labelElement={labelElement} ref={ref} onClick={handleClick} onFocus={handleFocus} active={modifiers.active} disabled={modifiers.disabled}
+    />;
+  }, []);
 
   const selectedItem = useMemo(() => items.find(item => item.value === value), [value, items]);
 
@@ -195,11 +213,21 @@ function GateControlsCard({channel, otherChannel, syncLeftIcon, syncRightIcon, s
           action acts only on the pulsePolarity bits. */}
       {/* TODO: We should warn that the intensity can change significantly between these. */}
       <SimpleSelect items={[
-        { label: "None", value: GatePulsePolarity.None },
-        { label: "Positive", value: GatePulsePolarity.Positive },
-        { label: "Negative", value: GatePulsePolarity.Negative },
-        { label: "Biphasic", value: GatePulsePolarity.Biphasic },
-        { label: "Alternate", value: -1 },
+        { label: "None", value: GatePulsePolarity.None, icon: <svg width={16} height={16} viewBox="0 0 16 16">
+            <path d="M2 7a1 1 0 0 0-1 1 1 1 0 0 0 1 1h12a1 1 0 0 0 1-1 1 1 0 0 0-1-1z" />
+          </svg> },
+        { label: "Positive", value: GatePulsePolarity.Positive, icon: <svg width={16} height={16} viewBox="0 0 16 16">
+            <path d="M5 3a1 1 0 0 0-1 1v3H2a1 1 0 0 0-1 1 1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V5h1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1 1 1 0 0 0-1-1H9V4a1 1 0 0 0-1-1z" />
+          </svg> },
+        { label: "Negative", value: GatePulsePolarity.Negative, icon: <svg width={16} height={16} viewBox="0 0 16 16">
+            <path d="M2 7a1 1 0 0 0-1 1 1 1 0 0 0 1 1h5v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V9h2a1 1 0 0 0 1-1 1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3H9V8a1 1 0 0 0-1-1H5z" />
+          </svg> },
+        { label: "Biphasic", value: GatePulsePolarity.Biphasic, icon: <svg width={16} height={16} viewBox="0 0 16 16">
+            <path d="M5 3a1 1 0 0 0-1 1v3H2a1 1 0 0 0-1 1 1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V5h1v7a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V9h2a1 1 0 0 0 1-1 1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v3H9V4a1 1 0 0 0-1-1z" />
+          </svg> },
+        { label: "Alternate", value: -1, icon: <svg width={16} height={16} viewBox="0 0 16 16">
+            <path d="M4 3a1 1 0 0 0-1 1v3a1 1 0 0 0-1 1 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1V5h1v3a1 1 0 0 0 1 1h3v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V9a1 1 0 0 0 1-1 1 1 0 0 0-1-1h-1a1 1 0 0 0-1 1v3h-1V8a1 1 0 0 0-1-1H8V4a1 1 0 0 0-1-1z" />
+          </svg> },
       ]} onItemSelect={async ({ value }) => {
         if (value === -1) {
           await setGateValue({ ...gateValue, pulsePolarity: GatePulsePolarity.Biphasic, alternatePolarity: true });
