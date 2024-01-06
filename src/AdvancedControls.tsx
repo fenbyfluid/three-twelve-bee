@@ -48,15 +48,19 @@ function TimerSelect({ value, onItemSelect }: { value?: TimerSelection, onItemSe
   ]} onItemSelect={({ value }) => onItemSelect && onItemSelect(value)} value={value} />
 }
 
-function SourceSelect({ value, onItemSelect, includeOtherChannel }: { value?: SourceSelection, onItemSelect?: (value: SourceSelection) => void, includeOtherChannel?: boolean }) {
-  return <SimpleSelect items={[
+type AdvancedParameterName = "Ramp Level" | "Ramp Time" | "Depth" | "Tempo" | "Frequency" | "Effect" | "Width" | "Pace";
+
+function SourceSelect({ value, onItemSelect, advancedParameterName, includeOtherChannel }: { value?: SourceSelection, onItemSelect?: (value: SourceSelection) => void, advancedParameterName?: AdvancedParameterName, includeOtherChannel?: boolean }) {
+  const items = useMemo(() => [
     { label: "Set Value", value: SourceSelection.SetValue },
-    { label: "Advanced Parameter", value: SourceSelection.AdvancedParameter },
+    { label: `${advancedParameterName ?? ""} Advanced Parameter`.trimStart(), value: SourceSelection.AdvancedParameter },
     { label: "Multi Adjust", value: SourceSelection.MultiAdjust },
     ...((includeOtherChannel ?? true) ? [
       { label: "Other Channel", value: SourceSelection.OtherChannel },
     ] : []),
-  ]} onItemSelect={({ value }) => onItemSelect && onItemSelect(value)} value={value} />
+  ], [advancedParameterName, includeOtherChannel]);
+
+  return <SimpleSelect items={items} onItemSelect={({ value }) => onItemSelect && onItemSelect(value)} value={value} />
 }
 
 function formatTimerValue(timer: TimerSelection, value: number) {
@@ -171,7 +175,7 @@ function GateControlsCard({channel, otherChannel, syncLeftIcon, syncRightIcon, s
       <FormGroup label="Gate On Time">
         <SourceSelect onItemSelect={async (value) => {
           await setGateSelect({ ...gateSelect, onSource: value });
-        }} value={gateSelect.onSource} includeOtherChannel={false} />
+        }} value={gateSelect.onSource} includeOtherChannel={false} advancedParameterName="Effect" />
         {(gateSelect.onSource === SourceSelection.SetValue) && <>
             <TimerSlider timer={gateSelect.timerSelection} getter={channel.getGateOnTime} setter={channel.setGateOnTime} />
         </>}
@@ -179,7 +183,7 @@ function GateControlsCard({channel, otherChannel, syncLeftIcon, syncRightIcon, s
       <FormGroup label="Gate Off Time">
         <SourceSelect onItemSelect={async (value) => {
           await setGateSelect({ ...gateSelect, offSource: value });
-        }} value={gateSelect.offSource} includeOtherChannel={false} />
+        }} value={gateSelect.offSource} includeOtherChannel={false} advancedParameterName="Tempo" />
         {(gateSelect.offSource === SourceSelection.SetValue) && <>
             <TimerSlider min={1} timer={gateSelect.timerSelection} getter={channel.getGateOffTime} setter={channel.setGateOffTime} />
         </>}
@@ -189,6 +193,7 @@ function GateControlsCard({channel, otherChannel, syncLeftIcon, syncRightIcon, s
       {/* We fake the alternate polarity flag as an option here, as it overrides what the bits are set to.
           We can't just have it as an option in the GatePulsePolarity enum, as the Reverse and Toggle Polarity timer
           action acts only on the pulsePolarity bits. */}
+      {/* TODO: We should warn that the intensity can change significantly between these. */}
       <SimpleSelect items={[
         { label: "None", value: GatePulsePolarity.None },
         { label: "Positive", value: GatePulsePolarity.Positive },
@@ -220,6 +225,7 @@ function GateControlsCard({channel, otherChannel, syncLeftIcon, syncRightIcon, s
 
 interface VariableControlsCardProps {
   label: string;
+  advancedParameterName?: AdvancedParameterName,
   minValue?: number;
   maxValue?: number;
   valueLabelRenderer?: (v: number) => string;
@@ -230,7 +236,7 @@ interface VariableControlsCardProps {
   style?: React.CSSProperties;
 }
 
-function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelRenderer, channelVariable, otherChannelVariable, syncLeftIcon, syncRightIcon, style }: VariableControlsCardProps) {
+function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelRenderer, advancedParameterName, channelVariable, otherChannelVariable, syncLeftIcon, syncRightIcon, style }: VariableControlsCardProps) {
   const [select, setSelect] = useDeviceState(channelVariable.getSelect, channelVariable.setSelect, ValueSelectFlags.fromValue(0));
 
   // The <step> is the amount the <value> will change every <rate> ticks of <timer>
@@ -281,7 +287,7 @@ function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelR
   const minControls = <>
     <SourceSelect onItemSelect={async (value) => {
       await setSelect({ ...select, valOrMinSource: value });
-    }} value={select.valOrMinSource} />
+    }} value={select.valOrMinSource} advancedParameterName={advancedParameterName} />
     {(select.valOrMinSource === SourceSelection.SetValue) ? <>
       <ValueSlider min={minValue} max={maxValue} labelRenderer={valueLabelRenderer} getter={channelVariable.getMin} setter={channelVariable.setMin} />
     </> : <>
@@ -309,7 +315,7 @@ function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelR
       <FormGroup label="Value">
         <SourceSelect onItemSelect={async (value) => {
           await setSelect({ ...select, valOrMinSource: value });
-        }} value={select.valOrMinSource} />
+        }} value={select.valOrMinSource} advancedParameterName={advancedParameterName} />
         {(select.valOrMinSource === SourceSelection.SetValue) ? <>
           <ValueSlider min={minValue} max={maxValue} labelRenderer={valueLabelRenderer} getter={channelVariable.getValue} setter={channelVariable.setValue} />
         </> : <>
@@ -328,7 +334,7 @@ function VariableControlsCard({ label, minValue = 0, maxValue = 255, valueLabelR
       <FormGroup label="Rate">
         <SourceSelect onItemSelect={async (value) => {
           await setSelect({ ...select, rateSource: value });
-        }} value={select.rateSource} />
+        }} value={select.rateSource} advancedParameterName="Tempo" />
         {(select.rateSource === SourceSelection.SetValue) ? <>
           <TimerSlider timer={select.timerSelection} getter={channelVariable.getRate} setter={channelVariable.setRate} />
         </> : <>
@@ -392,13 +398,19 @@ function ChannelControls(props: { device: DeviceApi, channel: "A" | "B", levelCo
     </PanelCard>
     <GateControlsCard channel={channel} otherChannel={otherChannel} {...syncIconProps}
       style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Intensity" valueLabelRenderer={v => `${((v / 255) * 100).toFixed(0)}%`}
+    <VariableControlsCard
+      label="Intensity" advancedParameterName="Depth"
+      valueLabelRenderer={v => `${((v / 255) * 100).toFixed(0)}%`}
       channelVariable={channel.intensity} otherChannelVariable={otherChannel.intensity} {...syncIconProps}
       style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Frequency" minValue={250} maxValue={15}
+    <VariableControlsCard
+      label="Frequency" advancedParameterName="Frequency"
+      minValue={250} maxValue={15}
       valueLabelRenderer={v => `${(3750 / (v & 0xFF)) & 0xFF}\u00a0Hz`} channelVariable={channel.frequency}
       otherChannelVariable={otherChannel.frequency} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
-    <VariableControlsCard label="Width" minValue={50} maxValue={250 /* Can actually reach 255, but this looks nicer. */}
+    <VariableControlsCard
+      label="Width" advancedParameterName="Width"
+      minValue={50} maxValue={250 /* Can actually reach 255, but this looks nicer. */}
       valueLabelRenderer={v => `${v}\u00b5s`} channelVariable={channel.width}
       otherChannelVariable={otherChannel.width} {...syncIconProps} style={{ gridColumn: props.gridColumn }} />
   </>;
@@ -456,18 +468,18 @@ function MultiAdjustControls({ device, disabled = false, showMinMax = false }: {
     </FormGroup>
   </> : undefined;
 
-  return <>
-    {minMaxControls}
+  return <div>
     <FormGroup label={showMinMax ? "Multi Adjust Value" : "Multi Adjust"}>
       {/* TODO: We should warn the user that this (and the disable switch) doesn't affect the audio attenuation. */}
       <ParameterSlider
         disabled={disabled}
         min={max} max={min}
-        value={value} onChange={v => setValue(v)}
+        value={value} onRelease={v => setValue(v)}
         labelRenderer={v => `${((1 - (v - min) / (max - min)) * 100).toFixed(0)}%`}
       />
     </FormGroup>
-  </>;
+    {minMaxControls}
+  </div>;
 }
 
 function SharedControlsCard({ device, style, controlFlags, setControlFlags }: { device: DeviceApi, style?: React.CSSProperties, controlFlags: ControlFlags, setControlFlags: (flags: ControlFlags) => Promise<void> }) {
@@ -477,11 +489,8 @@ function SharedControlsCard({ device, style, controlFlags, setControlFlags }: { 
   // TODO: No grid for mobile.
   const panelStyle = {
     display: "grid",
-    // gridTemplateColumns: "repeat(3, 1fr)",
-    // gridTemplateColumns: "repeat(2, 1fr) fit-content(100%)",
     gridTemplateColumns: "1fr 2.4fr 1fr",
     gap: 30,
-    // paddingTop: 15,
     paddingBottom: 0,
     ...style,
   };
@@ -536,6 +545,7 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
       <ChannelControls device={device} channel="B" levelControlDisabled={!controlFlags.disableKnobs} gridColumn={2} />
       <VariableControlsCard
         label="Ramp"
+        advancedParameterName="Ramp Level"
         minValue={155}
         valueLabelRenderer={v => `${v - 155}%`}
         channelVariable={device.channelA.ramp}
