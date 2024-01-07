@@ -109,13 +109,6 @@ export async function* parseModuleAsync(module: AsyncIterable<number>): AsyncGen
   }
 }
 
-interface SetInstruction {
-  readonly operation: "set";
-  readonly address: number;
-  readonly value: number;
-  readonly forceHigh?: boolean;
-}
-
 interface CopyInstruction {
   readonly operation: "copy";
   readonly address: number;
@@ -128,12 +121,12 @@ interface MemoryInstruction {
 }
 
 interface MathInstruction {
-  readonly operation: "add" | "and" | "or" | "xor";
+  readonly operation: "set" | "add" | "and" | "or" | "xor";
   readonly address: number;
   readonly value: number;
 }
 
-export type Instruction = SetInstruction | CopyInstruction | MemoryInstruction | MathInstruction;
+export type Instruction = CopyInstruction | MemoryInstruction | MathInstruction;
 
 // TODO: Read from a Unit8Array?
 export function decodeInstruction(instruction: number[]): Instruction {
@@ -148,12 +141,15 @@ export function decodeInstruction(instruction: number[]): Instruction {
     // 0011 1111
     let address = 0x80 + (opcode & 0x3F);
 
+    if ((opcode & 0x40) === 0x40) {
+      address |= 0x100;
+    }
+
     const param = instruction[1];
 
     return {
       operation: "set",
       address: address,
-      forceHigh: (opcode & 0x40) === 0x40,
       value: param,
     };
   }
@@ -282,24 +278,16 @@ export function decodeInstruction(instruction: number[]): Instruction {
 
 // TODO: Output to a Unit8Array?
 export function encodeInstruction(instruction: Instruction): number[] {
-  if ("value" in instruction && instruction.value > 0xFF) {
-    throw new Error("value out of range");
-  }
-
-  if (instruction.operation === "set") {
-    if (instruction.address < 0x80 || instruction.address > 0xBF) {
-      throw new Error("address out of range");
-    }
-
-    return [0x80 | (instruction.forceHigh ? 0x40 : 0x00) | (instruction.address - 0x80), instruction.value];
-  }
-
   if (instruction.address > 0x03FF) {
     throw new Error("address out of range");
   }
 
   const addressHigh = (instruction.address >>> 8) & 0x03;
   const addressLow = instruction.address & 0xFF;
+
+  if ("value" in instruction && instruction.value > 0xFF) {
+    throw new Error("value out of range");
+  }
 
   switch (instruction.operation) {
     case "copy":
@@ -320,6 +308,16 @@ export function encodeInstruction(instruction: Instruction): number[] {
       return [0x40 | (2 << 2) | addressHigh, addressLow];
     case "rand":
       return [0x40 | (3 << 2) | addressHigh, addressLow];
+    case "set":
+      if (addressHigh > 0x01) {
+        throw new Error("address out of range");
+      }
+
+      if (addressLow < 0x80 || addressLow > 0xBF) {
+        throw new Error("address out of range");
+      }
+
+      return [0x80 | (addressHigh << 6) | (addressLow & 0x3F), instruction.value];
     case "add":
       return [0x50 | (0 << 2) | addressHigh, addressLow, instruction.value];
     case "and":
@@ -334,6 +332,7 @@ export function encodeInstruction(instruction: Instruction): number[] {
 }
 
 // TODO: Should we encode the instruction into the right bit of memory first?
+// TODO: Move this to a whole mock device we can use for tests.
 export function simulateInstruction(memory: { [key: number]: number }, instruction: Instruction): void {
   const channelBits = memory[0x0085];
   if (channelBits === 0) {
@@ -346,63 +345,54 @@ export function simulateInstruction(memory: { [key: number]: number }, instructi
   }
 
   while (true) {
-    if (instruction.operation === "set") {
-      let address = instruction.address;
+    let address = instruction.address;
+    if (channelB && address >= 0x008C && address < 0x00C0) {
+      address |= 0x0100;
+    }
 
-      // This one doesn't need the upper bounds check as 0x3F + 0x80 is the same as
-      // the upper bound, so this is only guarding against 0x80 - 0x8B being shifted.
-      if (instruction.forceHigh || (channelB && address >= 0x008C)) {
-        address |= 0x0100;
-      }
+    const bank = channelB ? 0x018C : 0x008C;
 
-      memory[address] = instruction.value;
-    } else {
-      let address = instruction.address;
-      if (channelB && address >= 0x008C && address < 0x00C0) {
-        address |= 0x0100;
-      }
-
-      const bank = channelB ? 0x018C : 0x008C;
-
-      switch (instruction.operation) {
-        case "copy":
-          for (let i = 0; i < instruction.values.length; ++i) {
-            memory[address + i] = instruction.values[i];
-          }
-          break;
-        case "store":
-          memory[bank] = memory[address];
-          break;
-        case "load":
-          memory[address] = memory[bank];
-          break;
-        case "div2":
-          memory[address] /= 2;
-          break;
-        case "rand":
-          const low = memory[0x008D];
-          const high = memory[0x008E];
-          memory[address] = low + Math.round(Math.random() * (high - low));
-          break;
-        case "add":
-          memory[address] += instruction.value;
-          break;
-        case "and":
-          memory[address] &= instruction.value;
-          break;
-        case "or":
-          memory[address] |= instruction.value;
-          break;
-        case "xor":
-          memory[address] ^= instruction.value;
-          break;
-        case "condexec":
-          if (memory[address] === memory[bank]) {
-            // switch_to_module(memory[0x0084]);
-            throw new Error("condexec instruction can't be simulated");
-          }
-          break;
-      }
+    switch (instruction.operation) {
+      case "copy":
+        for (let i = 0; i < instruction.values.length; ++i) {
+          memory[address + i] = instruction.values[i];
+        }
+        break;
+      case "store":
+        memory[bank] = memory[address];
+        break;
+      case "load":
+        memory[address] = memory[bank];
+        break;
+      case "div2":
+        memory[address] /= 2;
+        break;
+      case "rand":
+        const low = memory[0x008D];
+        const high = memory[0x008E];
+        memory[address] = low + Math.round(Math.random() * (high - low));
+        break;
+      case "set":
+        memory[address] = instruction.value;
+        break;
+      case "add":
+        memory[address] += instruction.value;
+        break;
+      case "and":
+        memory[address] &= instruction.value;
+        break;
+      case "or":
+        memory[address] |= instruction.value;
+        break;
+      case "xor":
+        memory[address] ^= instruction.value;
+        break;
+      case "condexec":
+        if (memory[address] === memory[bank]) {
+          // switch_to_module(memory[0x0084]);
+          throw new Error("condexec instruction can't be simulated");
+        }
+        break;
     }
 
     if (channelB || (channelBits & 0x02) === 0) {

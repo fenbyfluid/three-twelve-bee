@@ -558,6 +558,7 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
       </H3>
       <TabsExpander />
       <Button intent="primary" onClick={async () => {
+        // Reset 0x4080-0x4087, 0x4088-0x40BF, and 0x4188-0x41BF to default values.
         await device.executeInstructions([]);
 
         // Cancel the ramp and set the value to 100% to clean up the UI
@@ -565,7 +566,7 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
         // const selectFlags = await rampVariable.getSelect();
         // await rampVariable.setSelect({ ...selectFlags, timerSelection: TimerSelection.None });
         // await rampVariable.setValue(255);
-      }}>New Mode</Button>
+      }}>New Routine</Button>
     </div>
     <div style={bodyStyle}>
       <SharedControlsCard device={device} controlFlags={controlFlags} setControlFlags={setControlFlags} style={{ gridColumn: "span 2" }} />

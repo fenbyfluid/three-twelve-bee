@@ -51,6 +51,7 @@ firmwareTest("parse all firmware modules", () => {
     }
 
     const parsedModule = Array.from(parseModule(firmwareImage!.iterBytes(moduleOffset)));
+    // console.log(i, parsedModule, parsedModule.map(decodeInstruction));
 
     for (let instruction of parsedModule) {
       const decodedInstruction = decodeInstruction(instruction);
@@ -75,7 +76,7 @@ test("parse eroslink module", () => {
 
   const decodedModule = parsedModule.map(decodeInstruction);
   expect(decodedModule).toStrictEqual([
-    { operation: "set", address: 0x85, forceHigh: false, value: 0x03 },
+    { operation: "set", address: 0x85, value: 0x03 },
     { operation: "copy", address: 0x86, values: [ 0x08, 0x52 ] },
     { operation: "and", address: 0xB5, value: 0xE3 },
     { operation: "or", address: 0xB5, value: 0x08 },
@@ -106,7 +107,7 @@ test("simulate instructions", () => {
   expect(memory[0x00A6]).toBe(0x08);
   expect(memory[0x01A6]).toBe(0x08);
 
-  simulateInstruction(memory, { operation: "set", address: 0xA6, value: 0x52, forceHigh: true });
+  simulateInstruction(memory, { operation: "set", address: 0x1A6, value: 0x52 });
   expect(memory[0x00A6]).toBe(0x08);
   expect(memory[0x01A6]).toBe(0x52);
 
@@ -135,11 +136,18 @@ test("parse interactive init module", () => {
 
   const decodedModule = parsedModule.map(decodeInstruction);
   expect(decodedModule).toStrictEqual([
-    { operation: "set", address: 0x85, forceHigh: false, value: 0x03 },
-    { operation: "set", address: 0x86, forceHigh: false, value: 0x01 },
-    { operation: "set", address: 0x9A, forceHigh: false, value: 0x02 },
-    { operation: "set", address: 0xAC, forceHigh: false, value: 0x01 },
-    { operation: "set", address: 0xB5, forceHigh: false, value: 0x01 },
-    { operation: "set", address: 0xBE, forceHigh: false, value: 0x01 },
+    { operation: "set", address: 0x85, value: 0x03 },
+    { operation: "set", address: 0x86, value: 0x01 },
+    { operation: "set", address: 0x9A, value: 0x02 },
+    { operation: "set", address: 0xAC, value: 0x01 },
+    { operation: "set", address: 0xB5, value: 0x01 },
+    { operation: "set", address: 0xBE, value: 0x01 },
   ]);
+
+  // Affect both channel A and B
+  // Multi Adjust Range Min = 1
+  // Channel X: Current Gate Select = Medium Timer, Set Value for On and Off Source
+  // Channel X: Current Intensity Modulation Select = Fast Timer, Set Value for Min and Rate
+  // Channel X: Current Frequency Modulation Select = Fast Timer, Set Value for Min and Rate
+  // Channel X: Current Width Modulation Select = Fast Timer, Set Value for Min and Rate
 });

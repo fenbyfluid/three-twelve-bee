@@ -532,7 +532,9 @@ export const RAM_VARIABLES: VariableInfo[] = [
   // 0x4186 - 0x4187 Unused
   // 0x4188 - 0x418B Unused - bytes above here are initialized at routine start
   { address: 0x418C, description: "Channel B: Module temporary byte store" },
-  // 0x418D - 0x418F Unused
+  // 0x418D Unused
+  // 0x418E Unused (set to 0x08 from init to mirror Channel A)
+  // 0x418F Unused
   { address: 0x4190, description: "Channel B: Current Gate Value", flags: GATE_VALUE },
   // 0x4191 - 0x4193 Unused
   { address: 0x4194, description: "Channel B: Next module timer current" },

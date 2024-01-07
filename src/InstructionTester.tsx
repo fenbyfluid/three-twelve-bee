@@ -143,7 +143,7 @@ const TEST_SUITE: TestSuiteTest[] = [
     name: "load instruction",
     instructions: [[
       { operation: "set", address: 0x8C, value: 0x50 },
-      { operation: "set", address: 0x8C, value: 0x60, forceHigh: true },
+      { operation: "set", address: 0x18C, value: 0x60 },
       { operation: "load", address: 0x98 },
     ]],
     tests: [
