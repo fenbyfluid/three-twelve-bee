@@ -345,7 +345,7 @@ const  VALUE_SELECT: FlagInfo[] = [
   { mask: 0b10000000, description: "Invert Value" },
 ];
 
-const MODULES: { [key: number]: string } = {
+export const MODULES: { [key: number]: string } = {
   0: "None",
   1: "Initialization",
   2: "Intense B",
@@ -458,7 +458,12 @@ export const RAM_VARIABLES: VariableInfo[] = [
   },
   { address: 0x4084, description: "Module to load if condition met", values: MODULES },
   {
-    address: 0x4085, description: "When module loading determines which channels to set", flags: [
+    address: 0x4085, description: "When module loading determines which channels to set", values: [
+      "None",
+      "Channel A",
+      "Channel B",
+      "Both Channels",
+    ], flags: [
       { mask: 0b00000001, description: "Channel A" },
       { mask: 0b00000010, description: "Channel B" },
       { mask: 0b11111100, description: "Unused" },
@@ -657,14 +662,14 @@ export const EEPROM_VARIABLES: VariableInfo[] = [
   { address: 0x8013, description: "Advanced Parameter: Width" },
   { address: 0x8014, description: "Advanced Parameter: Pace" },
   // 0x8015 - 0x8017 Unused
-  { address: 0x8018, description: "Start Vector User 1" },
-  { address: 0x8019, description: "Start Vector User 2" },
-  { address: 0x801A, description: "Start Vector User 3" },
-  { address: 0x801B, description: "Start Vector User 4" },
-  { address: 0x801C, description: "Start Vector User 5" },
-  { address: 0x801D, description: "Start Vector User 6" },
-  { address: 0x801E, description: "Start Vector User 7 (Not Implemented)" },
-  { address: 0x801F, description: "Start Vector User 8 (Not Implemented)" },
+  { address: 0x8018, description: "Start Vector User 1", values: MODULES },
+  { address: 0x8019, description: "Start Vector User 2", values: MODULES },
+  { address: 0x801A, description: "Start Vector User 3", values: MODULES },
+  { address: 0x801B, description: "Start Vector User 4", values: MODULES },
+  { address: 0x801C, description: "Start Vector User 5", values: MODULES },
+  { address: 0x801D, description: "Start Vector User 6", values: MODULES },
+  { address: 0x801E, description: "Start Vector User 7 (Scratchpad Only)", values: MODULES },
+  { address: 0x801F, description: "Start Vector User 8 (Not Implemented)", values: MODULES },
   // 0x8020 - 0x803F User routine module pointers 0x80-0x9F
   ...Array.from({ length: 32 }, (_, i) => ({ address: 0x8020 + i, description: `Start User Module ${i + 1}` })),
   // 0x8040 - 0x80FF Space for User Modules
