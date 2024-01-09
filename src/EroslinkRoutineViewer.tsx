@@ -6,6 +6,7 @@ import { EroslinkRoutineGraph } from "./EroslinkRoutineGraph";
 export function EroslinkRoutineViewer() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [file, setFile] = useState<{ name: string, context: DesignerFile } | null>(null);
+  const [selectedRoutineIdx, setSelectedRoutineIdx] = useState(-1);
   const [routine, setRoutine] = useState<Routine | null>(null);
 
   const selectFile = (ev: React.FormEvent<HTMLInputElement>) => {
@@ -13,6 +14,7 @@ export function EroslinkRoutineViewer() {
 
     if (!file) {
       setFile(null);
+      setSelectedRoutineIdx(-1);
       setRoutine(null);
 
       return;
@@ -28,10 +30,9 @@ export function EroslinkRoutineViewer() {
           context,
         });
 
-        if (context.routines.length === 1) {
+        if (context.routines.length > 0) {
+          setSelectedRoutineIdx(0);
           setRoutine(context.routines[0]);
-        } else {
-          setRoutine(null);
         }
       } catch (err) {
         setFileError(err instanceof Error ? err.message : "Unknown Error");
@@ -40,8 +41,10 @@ export function EroslinkRoutineViewer() {
   };
 
   const selectRoutine = (ev: React.ChangeEvent<HTMLSelectElement>) => {
-    const routine = file?.context.routines.find(routine => routine.name === ev.target.value);
+    const idx = +ev.target.value;
+    const routine = idx >= 0 && file?.context.routines.at(idx);
 
+    setSelectedRoutineIdx(idx)
     setRoutine(routine || null);
   };
 
@@ -61,13 +64,13 @@ export function EroslinkRoutineViewer() {
     <FormGroup label="Select Routine" disabled={!file} helperText={routine?.description}>
       <HTMLSelect
         fill={true}
-        value={routine?.name || ""}
-        disabled={!file}
+        value={selectedRoutineIdx}
+        disabled={(file?.context.routines.length ?? 0) <= 1}
         onChange={selectRoutine}
       >
-        <option disabled={true} value="">Please Select...</option>
-        {file?.context.routines.map(routine =>
-          <option key={routine.name} value={routine.name!}>{routine.name}</option>)}
+        <option disabled={true} value={-1}>Please Select...</option>
+        {file?.context.routines.map((routine, i) =>
+          <option key={i} value={i}>{routine.name}</option>)}
       </HTMLSelect>
     </FormGroup>
     <FormGroup label="Ingredient Graph" disabled={!routine}>
