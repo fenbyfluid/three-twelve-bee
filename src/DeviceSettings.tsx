@@ -1,4 +1,13 @@
-import { Button, ButtonProps, ControlGroup, FormGroup, H3, SegmentedControl, TabsExpander } from "@blueprintjs/core";
+import {
+  Button,
+  ButtonProps,
+  ControlGroup,
+  FormGroup,
+  H3,
+  SegmentedControl,
+  Switch,
+  TabsExpander,
+} from "@blueprintjs/core";
 import React, { useCallback, useEffect, useState } from "react";
 import { ParameterSlider } from "./ParameterSlider";
 import {
@@ -8,6 +17,7 @@ import {
   PowerLevel,
   ReadonlySettings,
   Settings,
+  useDeviceState,
   usePolledGetter,
 } from "./DeviceApi";
 import { ModeSelect } from "./ModeSelect";
@@ -109,7 +119,7 @@ function CopySettingsButton({ from, to, disabled, ...props }: { from: ReadonlySe
   return <Button disabled={disabled || isCopying} onClick={copySettings} {...props} />
 }
 
-export function DeviceSettings({ device }: { device: DeviceApi }) {
+export function DeviceSettings({ device, devMode = false }: { device: DeviceApi, devMode?: boolean }) {
   const settings = device.currentSettings;
   const savedSettings = device.savedSettings;
 
@@ -118,6 +128,7 @@ export function DeviceSettings({ device }: { device: DeviceApi }) {
   const splitModeA = usePolledGetter(settings.getSplitModeA);
   const splitModeB = usePolledGetter(settings.getSplitModeB);
   const favouriteMode = usePolledGetter(settings.getFavouriteMode);
+  const [debugMode, setDebugMode] = useDeviceState(devMode && device.getDebugMode, device.setDebugMode, false);
 
   const bodyStyle: React.CSSProperties = {
     marginTop: 30,
@@ -175,6 +186,9 @@ export function DeviceSettings({ device }: { device: DeviceApi }) {
         </FormGroup>
       </PanelCard>
       <AdvancedParametersPanel settings={settings} style={{ gridColumn: "span 2" }} />
+      {devMode && <PanelCard label="Developer Settings">
+          <Switch label="Show Module Number" checked={debugMode} onChange={ev => setDebugMode(ev.target.checked)} />
+      </PanelCard>}
     </div>
   </div>;
 }

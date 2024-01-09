@@ -76,7 +76,7 @@ export function App() {
       page = device && <InteractiveControls device={device} />;
       break;
     case "settings":
-      page = device && <DeviceSettings device={device} />;
+      page = device && <DeviceSettings device={device} devMode={devMode} />;
       break;
     case "designer":
       page = <AdvancedDesigner setBackAction={setBackAction} />;

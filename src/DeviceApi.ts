@@ -464,6 +464,9 @@ export class DeviceApi {
 
   public readonly getBatteryLevel = async (): Promise<number> => this.connection.peek(0x4203);
 
+  public readonly getDebugMode = async (): Promise<boolean> => this.connection.peek(0x4207).then(value => value !== 0);
+  public readonly setDebugMode = async (enabled: boolean): Promise<void> => this.connection.poke(0x4207, enabled ? 1 : 0);
+
   public readonly executeInstructions = async (modules: Instruction[][]): Promise<void> => {
     let cursor = 0;
     for (let i = 0; i < modules.length; ++i) {
