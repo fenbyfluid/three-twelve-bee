@@ -331,6 +331,81 @@ export function encodeInstruction(instruction: Instruction): number[] {
   }
 }
 
+export function findReferencedModules(instructions: Instruction[]): number[] {
+  const addressesWithModuleReferences = new Set([
+    0x84, // Cond exec
+    0x8F, // Audio trigger
+    0x97, // Module timer
+    0xA1, 0xA2, // Ramp action
+    0xAA, 0xAB, // Intensity action
+    0xB3, 0xB4, // Frequency action
+    0xBC, 0xBD, // Width action
+  ]);
+
+  // This complexity is needed for handling the built-in Torment module, it is a little gross,
+  // but is nice to be able to support and offer to users. TODO: Can we clean this up in any way?
+  const randMinAddress = 0x8D, randMaxAddress = 0x8E;
+  let randMinValue = null, randMaxValue = null;
+
+  const referencedModules = [];
+
+  // This isn't amazing, but it seems to do the job.
+  for (const instruction of instructions) {
+    switch (instruction.operation) {
+      case "set":
+        if (addressesWithModuleReferences.has(instruction.address & 0xFF) && instruction.value < 224) {
+          referencedModules.push(instruction.value);
+        }
+
+        if ((instruction.address & 0xFF) === randMinAddress) {
+          randMinValue = instruction.value;
+        }
+
+        if ((instruction.address & 0xFF) === randMaxAddress) {
+          randMaxValue = instruction.value;
+        }
+
+        break;
+      case "copy":
+        for (let i = 0; i < instruction.values.length; ++i) {
+          if (addressesWithModuleReferences.has((instruction.address + i) & 0xFF) && instruction.values[i] < 224) {
+            referencedModules.push(instruction.values[i]);
+          }
+
+          if ((instruction.address & 0xFF) === randMinAddress) {
+            randMinValue = instruction.values[i];
+          }
+
+          if ((instruction.address & 0xFF) === randMaxAddress) {
+            randMaxValue = instruction.values[i];
+          }
+        }
+
+        break;
+      case "rand":
+        if (addressesWithModuleReferences.has(instruction.address & 0xFF) && randMinValue !== null && randMaxValue !== null && randMaxValue < 224) {
+          for (let i = randMinValue; i <= randMaxValue; ++i) {
+            referencedModules.push(i);
+          }
+        }
+
+        break;
+      default:
+        // TODO: Temporary hack.
+        if (addressesWithModuleReferences.has(instruction.address & 0xFF)) {
+          throw new Error("Unexpected interaction with module reference address");
+        }
+
+        // TODO: Even more temporary hack.
+        if ((instruction.address & 0xFF) === randMinAddress || (instruction.address & 0xFF) === randMaxAddress) {
+          throw new Error("Unexpected interaction with random bounds address");
+        }
+    }
+  }
+
+  return referencedModules;
+}
+
 // TODO: Should we encode the instruction into the right bit of memory first?
 // TODO: Move this to a whole mock device we can use for tests.
 export function simulateInstruction(memory: { [key: number]: number }, instruction: Instruction): void {

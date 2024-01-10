@@ -1,6 +1,12 @@
 import { RawIngredient } from "eroslink-file";
 import { FirmwareImage } from "./FirmwareImage";
-import { decodeInstruction, encodeInstruction, parseModule, simulateInstruction } from "./Module";
+import {
+  decodeInstruction,
+  encodeInstruction,
+  findReferencedModules,
+  parseModule,
+  simulateInstruction,
+} from "./Module";
 
 const FIRMWARE_PATH = __dirname + "/../312-16.upg";
 
@@ -58,6 +64,10 @@ firmwareTest("parse all firmware modules", () => {
       const encodedInstruction = encodeInstruction(decodedInstruction);
       expect(encodedInstruction).toStrictEqual(instruction);
     }
+
+    expect(() => {
+      findReferencedModules(parsedModule.map(decodeInstruction));
+    }).not.toThrow();
   }
 });
 

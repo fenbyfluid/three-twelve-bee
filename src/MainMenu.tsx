@@ -93,7 +93,7 @@ export function MainMenu(props: MainMenuProps) {
       </MenuCard>
     </div>
     <div style={{ ...listStyle, height: 100 }}>
-      <MenuCard disabled={!props.connection} onClick={() => props.onClick && props.onClick("programs")}>
+      <MenuCard disabled={!props.device} onClick={() => props.onClick && props.onClick("programs")}>
         Manage User Programs
       </MenuCard>
       <MenuCard disabled={props.connection !== null || !navigator.serial}

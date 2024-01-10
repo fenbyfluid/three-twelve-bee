@@ -1,9 +1,8 @@
 import { Button, H3, H4, H6, Pre } from "@blueprintjs/core";
 import React, { useEffect, useState } from "react";
-import { Mode } from "./DeviceApi";
-import { DeviceConnection } from "./DeviceConnection";
-import { MODULES, RAM_VARIABLES } from "./MemoryVariables";
-import { decodeInstruction, Instruction, parseModuleAsync } from "./Module";
+import { DeviceApi, Mode } from "./DeviceApi";
+import { RAM_VARIABLES } from "./MemoryVariables";
+import { findReferencedModules, Instruction } from "./Module";
 
 // TODO: It seems like we probably want our higher level interface to output a dumb series of simple instructions,
 //       which we then pass through various optimiser stages to minimise size. It's a hunch, but it feels like this will
@@ -38,6 +37,8 @@ import { decodeInstruction, Instruction, parseModuleAsync } from "./Module";
 // TODO: We need to investigate if it is safe to re-order modules - this will depend on if a program uses math
 //       operations to reference them. It's probably a safe bet that ErosLink is the only other assembler we need to
 //       deal with, but to be generic this could be handled as an analysis step and kept as a program flag.
+//       The built-in Torment mode uses the rand instruction to reference a set of sequential modules, which is a neat
+//       trick. We'll need to be vary careful in our handling if we want to offer that functionality to users.
 
 type ModuleInfo = {
   index: number,
@@ -45,78 +46,14 @@ type ModuleInfo = {
   referencedModules: number[],
 };
 
-async function LoadModule(device: DeviceConnection, moduleIdx: number): Promise<ModuleInfo> {
-  let bankBase = null;
-  let bankOffsetPtr = null;
-  if (moduleIdx >= 0xE0) {
-    throw new Error("Module index out of bounds");
-  } else if (moduleIdx >= 0xC0) {
-    // Scratchpad
-    bankBase = 0x40C0;
-    bankOffsetPtr = 0x41D0 + (moduleIdx - 0xC0);
-  } else if (moduleIdx >= 0xA0) {
-    // Upper User Bank
-    bankBase = 0x8120;
-    bankOffsetPtr = 0x8100 + (moduleIdx - 0xA0);
-  } else if (moduleIdx >= 0x80) {
-    // Lower User Bank
-    bankBase = 0x8040;
-    bankOffsetPtr = 0x8020 + (moduleIdx - 0x80);
-  } else {
-    throw new Error("Expected a User Module index");
-  }
+async function LoadModule(device: DeviceApi, moduleIdx: number): Promise<ModuleInfo> {
+  const instructions = await device.getUserModeModuleInstructions(moduleIdx);
 
-  // console.log(moduleIdx.toString(16), bankBase.toString(16), bankOffsetPtr.toString(16));
-  const moduleBase = bankBase + await device.peek(bankOffsetPtr);
-  // console.log(moduleIdx.toString(16), moduleBase.toString(16));
-
-  const parsedModule = [];
-  for await (const instruction of parseModuleAsync(device.iterBytes(moduleBase))) {
-    parsedModule.push(decodeInstruction(instruction));
-  }
-
-  // console.log(moduleIdx.toString(16), parsedModule);
-
-  const referencedModules = [];
-
-  const addressesWithModuleReferences = new Set([
-    0x84, // Cond exec
-    0x8F, // Audio trigger
-    0x97, // Module timer
-    0xA1, 0xA2, // Ramp action
-    0xAA, 0xAB, // Intensity action
-    0xB3, 0xB4, // Frequency action
-    0xBC, 0xBD, // Width action
-  ]);
-
-  // This isn't amazing, but it seems to do the job.
-  for (const instruction of parsedModule) {
-    switch (instruction.operation) {
-      case "set":
-        if (addressesWithModuleReferences.has(instruction.address & 0xFF) && instruction.value < 224) {
-          referencedModules.push(instruction.value);
-        }
-
-        break;
-      case "copy":
-        for (let i = 0; i < instruction.values.length; ++i) {
-          if (addressesWithModuleReferences.has((instruction.address + i) & 0xFF) && instruction.values[i] < 224) {
-            referencedModules.push(instruction.values[i]);
-          }
-        }
-
-        break;
-      default:
-        // TODO: Temporary hack.
-        if (addressesWithModuleReferences.has(instruction.address & 0xFF)) {
-          throw new Error("Unexpected interaction with module reference address");
-        }
-    }
-  }
+  const referencedModules = findReferencedModules(instructions);
 
   return {
     index: moduleIdx,
-    instructions: parsedModule,
+    instructions: instructions,
     referencedModules: referencedModules,
   };
 }
@@ -126,11 +63,8 @@ type ModeInfo = {
   modules: ModuleInfo[],
 };
 
-async function LoadUserMode(device: DeviceConnection, userModeIdx: number): Promise<ModeInfo> {
-  // console.log(`Loading User ${userModeIdx + 1}`);
-
-  const startModule = await device.peek(0x8018 + userModeIdx);
-  // console.log(`Got start vector: ${startModule}`);
+async function LoadUserMode(device: DeviceApi, userModeIdx: number): Promise<ModeInfo> {
+  const startModule = await device.getUserModeStartModuleIndex(Mode.User1 + userModeIdx);
 
   const loadedModules: ModuleInfo[] = [];
   const modulesToLoad = [startModule];
@@ -184,7 +118,6 @@ function InstructionPrettyDisplay({ instruction }: { instruction: Exclude<Instru
       operationDescription = "/= 2";
       break;
     case "rand":
-      operationDescription = "= <random value>"
       break;
     case "condexec":
       break;
@@ -236,8 +169,8 @@ function InstructionDisplay({ instruction }: { instruction: Instruction }) {
 
 function ModuleDisplay({ index, instructions, referencedModules }: ModuleInfo) {
   return <div>
-    <H6>{MODULES[index] ?? `0x${index.toString(16).toUpperCase().padStart(2, "0")}`} ({index}) =&gt; [{
-      referencedModules.map(index => `${MODULES[index] ?? `0x${index.toString(16).toUpperCase().padStart(2, "0")}`} (${index})`).join(", ")
+    <H6>0x{index.toString(16).toUpperCase().padStart(2, "0")} ({index}) =&gt; [{
+      referencedModules.map(index => `0x${index.toString(16).toUpperCase().padStart(2, "0")} (${index})`).join(", ")
     }]</H6>
     {instructions.map((instruction, i) => <InstructionDisplay key={i} instruction={instruction} />)}
   </div>;
@@ -250,7 +183,7 @@ function ModeDisplay({ index, modules }: ModeInfo) {
   </div>;
 }
 
-export function ProgramManager(props: { device: DeviceConnection }) {
+export function ProgramManager(props: { device: DeviceApi }) {
   const [epoch, setEpoch] = useState(0);
   const [modes, setModes] = useState<ModeInfo[]>([]);
 
@@ -258,7 +191,7 @@ export function ProgramManager(props: { device: DeviceConnection }) {
     console.log(`Reloading (${epoch})`);
 
     // Use 0x41F3 (RAM) instead of 0x8008 (EEPROM) to include scratchpad routine.
-    props.device.peek(0x41F3).then(topMode => {
+    props.device.currentSettings.getTopMode().then(topMode => {
       const userModeCount = topMode - Mode.Phase3;
 
       // First, remove any modes that don't exist anymore.

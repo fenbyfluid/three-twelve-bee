@@ -82,7 +82,7 @@ export function App() {
       page = <AdvancedDesigner setBackAction={setBackAction} />;
       break;
     case "programs":
-      page = connection && <ProgramManager device={connection} />;
+      page = device && <ProgramManager device={device} />;
       break;
     case "firmware":
       page = <FirmwareUpdate />;

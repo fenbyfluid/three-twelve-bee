@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { encodeInstruction, Instruction } from "./Module";
+import { decodeInstruction, encodeInstruction, Instruction, parseModuleAsync } from "./Module";
 
 export enum TimerAction {
   Stop = 0xFC,
@@ -223,6 +223,12 @@ export enum Mode {
   User5,
   User6,
   User7,
+}
+
+export enum ModuleIndex {
+  UserModuleLow = 0x80,
+  UserModuleHigh = 0xA0,
+  ScratchpadModule = 0xC0,
 }
 
 export namespace Mode {
@@ -467,6 +473,20 @@ export class DeviceApi {
   public readonly getDebugMode = async (): Promise<boolean> => this.connection.peek(0x4207).then(value => value !== 0);
   public readonly setDebugMode = async (enabled: boolean): Promise<void> => this.connection.poke(0x4207, enabled ? 1 : 0);
 
+  // TODO: We might want to offer these functions only as a higher-level API operating on entire user modes.
+  //       It's really unclear at the moment how we want to handle writing user modes.
+  public readonly getUserModeStartModuleIndex = async (mode: Mode): Promise<ModuleIndex> => {
+    if (mode < Mode.User1 || mode > Mode.User7) {
+      throw new Error("invalid user mode");
+    }
+
+    return await this.connection.peek(0x8018 + (mode - Mode.User1));
+  };
+
+  public readonly getUserModeModuleInstructions = async (module: ModuleIndex): Promise<Instruction[]> => {
+    return (await this.getUserModeModuleInstructionBytes(module)).map(decodeInstruction);
+  }
+
   public readonly executeInstructions = async (modules: Instruction[][]): Promise<void> => {
     let cursor = 0;
     for (let i = 0; i < modules.length; ++i) {
@@ -513,6 +533,44 @@ export class DeviceApi {
     // Switch to the new scratchpad mode.
     await this.switchToMode(scratchpadMode);
   };
+
+  private async *iterateBytes(offset: number): AsyncGenerator<number, void> {
+    let cursor = 0;
+    while ((offset + cursor) <= 0xFFFF) {
+      yield this.connection.peek(offset + cursor);
+      cursor++;
+    }
+
+    throw new Error("address out of range");
+  }
+
+  private readonly getUserModeModuleInstructionBytes = async (module: ModuleIndex): Promise<number[][]> => {
+    let baseAddress = null;
+    let offsetAddress = null;
+    if (module >= 0xE0) {
+      throw new Error("module index out of bounds");
+    } else if (module >= ModuleIndex.ScratchpadModule) {
+      baseAddress = 0x40C0;
+      offsetAddress = 0x41D0 + (module - ModuleIndex.ScratchpadModule);
+    } else if (module >= ModuleIndex.UserModuleHigh) {
+      baseAddress = 0x8120;
+      offsetAddress = 0x8100 + (module - ModuleIndex.UserModuleHigh);
+    } else if (module >= ModuleIndex.UserModuleLow) {
+      baseAddress = 0x8040;
+      offsetAddress = 0x8020 + (module - ModuleIndex.UserModuleLow);
+    } else {
+      throw new Error("module index is not a user mode module");
+    }
+
+    const offset = await this.connection.peek(offsetAddress);
+
+    const instructions = [];
+    for await (const instruction of parseModuleAsync(this.iterateBytes(baseAddress + offset))) {
+      instructions.push(instruction);
+    }
+
+    return instructions;
+  }
 }
 
 export function usePolledGetter<T>(getter: (() => Promise<T>) | false): T | undefined {
