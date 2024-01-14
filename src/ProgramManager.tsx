@@ -115,7 +115,8 @@ function InstructionPrettyDisplay({ instruction }: { instruction: Exclude<Instru
       //       https://ww1.microchip.com/downloads/en/devicedoc/atmel-0856-avr-instruction-set-manual.pdf 96.
       //       The C flag is cleared before it is executed.
       //       The distinction might be useful for comparing flags?
-      operationDescription = "/= 2";
+      //       It is very unclear why ROR was used rather than LSR (Logical Shift Right)
+      operationDescription = ">>= 1";
       break;
     case "rand":
       break;

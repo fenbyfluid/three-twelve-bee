@@ -485,9 +485,9 @@ export class DeviceApi {
 
   public readonly getUserModeModuleInstructions = async (module: ModuleIndex): Promise<Instruction[]> => {
     return (await this.getUserModeModuleInstructionBytes(module)).map(decodeInstruction);
-  }
+  };
 
-  public readonly executeInstructions = async (modules: Instruction[][]): Promise<void> => {
+  public readonly executeScratchpadMode = async (modules: Instruction[][]): Promise<void> => {
     let cursor = 0;
     for (let i = 0; i < modules.length; ++i) {
       // Set the module start offset.
@@ -528,7 +528,8 @@ export class DeviceApi {
     await this.connection.poke(0x8018 + (scratchpadMode - 0x88), 0xC0);
 
     // Set the in-memory high mode to include our newly assigned scratchpad mode.
-    await this.currentSettings.setTopMode(scratchpadMode);
+    // This isn't required to switch to the mode via the API.
+    // await this.currentSettings.setTopMode(scratchpadMode);
 
     // Switch to the new scratchpad mode.
     await this.switchToMode(scratchpadMode);

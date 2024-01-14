@@ -559,7 +559,7 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
       <TabsExpander />
       <Button intent="primary" onClick={async () => {
         // Reset 0x4080-0x4087, 0x4088-0x40BF, and 0x4188-0x41BF to default values.
-        await device.executeInstructions([]);
+        await device.executeScratchpadMode([]);
 
         // Cancel the ramp and set the value to 100% to clean up the UI
         // const rampVariable = device.channelA.ramp;

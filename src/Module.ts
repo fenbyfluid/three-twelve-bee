@@ -440,7 +440,7 @@ export function simulateInstruction(memory: { [key: number]: number }, instructi
         memory[address] = memory[bank];
         break;
       case "div2":
-        memory[address] /= 2;
+        memory[address] >>>= 1;
         break;
       case "rand":
         const low = memory[0x008D];
@@ -470,6 +470,7 @@ export function simulateInstruction(memory: { [key: number]: number }, instructi
         break;
     }
 
+    // TODO: The firmware actually re-reads memory[0x0085] here.
     if (channelB || (channelBits & 0x02) === 0) {
       break;
     }
