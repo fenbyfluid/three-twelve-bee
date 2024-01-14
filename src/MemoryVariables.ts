@@ -273,6 +273,18 @@ const BUTTONS: FlagInfo[] = [
   { mask: 0b10000000, description: "Menu" },
 ];
 
+const TIMER_SELECTION: { [key: number]: string } = {
+  0b00: "No timer",
+  0b01: "Use the `0x4088` (244Hz) timer",
+  0b10: "Use the `0x4088` div 8 (30.5Hz) timer",
+  0b11: "Use the `0x4089` (.953Hz) timer",
+};
+
+
+const MODULE_SELECT: FlagInfo[] = [
+  { mask: 0b00000011, description: "Timer Selection", values: TIMER_SELECTION },
+];
+
 const GATE_POLARITY: { [key: number]: string } = {
   0b00: "No Pulses",
   0b01: "Negative Pulses",
@@ -290,13 +302,6 @@ const GATE_VALUE: FlagInfo[] = [
   { mask: 0b10000000, description: "Unknown Phase 3" }, // 7: Set for only Channel B in Phase 3 (along with "Audio 3" flag)
 ];
 
-const GATE_TIMERS: { [key: number]: string } = {
-  0b00: "No gating",
-  0b01: "Use the `0x4088` (244Hz) timer for gating",
-  0b10: "Use the `0x4088` div 8 (30.5Hz) timer for gating",
-  0b11: "Use the `0x4089` (.953Hz) timer for gating",
-};
-
 const GATE_OFF_SOURCE: { [key: number]: string } = {
   0b00: "Set Value",
   0b01: "Tempo Advanced Parameter",
@@ -310,7 +315,7 @@ const GATE_ON_SOURCE: { [key: number]: string } = {
 };
 
 const GATE_SELECT: FlagInfo[] = [
-  { mask: 0b00000011, description: "Timer Selection", values: GATE_TIMERS },
+  { mask: 0b00000011, description: "Timer Selection", values: TIMER_SELECTION },
   { mask: 0b00011100, description: "Off Time Source", values: GATE_OFF_SOURCE },
   { mask: 0b11100000, description: "On Time Source", values: GATE_ON_SOURCE },
 ];
@@ -337,7 +342,7 @@ const VALUE_MIN_ACTION: { [key: number]: string } = {
 };
 
 const  VALUE_SELECT: FlagInfo[] = [
-  { mask: 0b00000011, description: "Timer Selection", values: GATE_TIMERS },
+  { mask: 0b00000011, description: "Timer Selection", values: TIMER_SELECTION },
   { mask: 0b01111100, description: "No-Timer Value Source", values: VALUE_ABS_SOURCES },
   { mask: 0b00001100, description: "Timer Min Source", values: VALUE_MIN_ACTION },
   { mask: 0b00010000, description: "Invert Min" },
@@ -346,8 +351,8 @@ const  VALUE_SELECT: FlagInfo[] = [
 ];
 
 export const MODULES: { [key: number]: string } = {
-  0: "None",
-  1: "Initialization",
+  0: "Turn Off Gates",
+  1: "Turn On Gates",
   2: "Intense B",
   3: "Stroke A",
   4: "Stroke B",
@@ -485,7 +490,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   // { address: 0x4093, description: "Unused" },
   { address: 0x4094, description: "Channel A: Next module timer current" },
   { address: 0x4095, description: "Channel A: Next module timer max" },
-  { address: 0x4096, description: "Channel A: Next module flag" },
+  { address: 0x4096, description: "Channel A: Next module flag", flags: MODULE_SELECT },
   { address: 0x4097, description: "Channel A: Next module number", values: MODULES },
   { address: 0x4098, description: "Channel A: Current Gate OnTime" },
   { address: 0x4099, description: "Channel A: Current Gate OffTime" },
@@ -544,7 +549,7 @@ export const RAM_VARIABLES: VariableInfo[] = [
   // 0x4191 - 0x4193 Unused
   { address: 0x4194, description: "Channel B: Next module timer current" },
   { address: 0x4195, description: "Channel B: Next module timer max" },
-  { address: 0x4196, description: "Channel B: Next module flag" },
+  { address: 0x4196, description: "Channel B: Next module flag", flags: MODULE_SELECT },
   { address: 0x4197, description: "Channel B: Next module number", values: MODULES },
   { address: 0x4198, description: "Channel B: Current Gate OnTime" },
   { address: 0x4199, description: "Channel B: Current Gate OffTime" },

@@ -92,7 +92,6 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ],
   },
   {
-    // Buggy: div2 instruction executes twice.
     name: "div2 instruction A only set both",
     instructions: [[
       { operation: "set", address: 0x98, value: 0x50 },
@@ -100,7 +99,7 @@ export const TEST_SUITE: TestSuiteTest[] = [
       { operation: "div2", address: 0x98 },
     ]],
     tests: [
-      { address: 0x0098, initial: 0x3E, expected: 0x14, correct: 0x28 },
+      { address: 0x0098, initial: 0x3E, expected: 0x28 },
       { address: 0x0198, initial: 0x3E, expected: 0x50 },
     ],
   },
@@ -117,7 +116,6 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ],
   },
   {
-    // Buggy: Would expect it to execute twice (for each channel), but only runs once.
     name: "div2 instruction high address",
     instructions: [[
       { operation: "set", address: 0x98, value: 0x50 },
@@ -125,11 +123,10 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ]],
     tests: [
       { address: 0x0098, initial: 0x3E, expected: 0x50 },
-      { address: 0x0198, initial: 0x3E, expected: 0x28, correct: 0x14 },
+      { address: 0x0198, initial: 0x3E, expected: 0x14 },
     ],
   },
   {
-    // Buggy: div2 instruction executes twice.
     name: "div2 instruction high address A only",
     instructions: [[
       { operation: "set", address: 0x85, value: 0x01 },
@@ -138,7 +135,7 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ]],
     tests: [
       { address: 0x0098, initial: 0x3E, expected: 0x50 },
-      { address: 0x0198, initial: 0x3E, expected: 0x0F, correct: 0x1F },
+      { address: 0x0198, initial: 0x3E, expected: 0x1F },
     ],
   },
   {
@@ -236,7 +233,7 @@ export const TEST_SUITE: TestSuiteTest[] = [
   {
     name: "add instruction negative",
     instructions: [[
-      { operation: "add", address: 0x98, value: 0xF0 },
+      { operation: "add", address: 0x98, value: -0x10 },
     ]],
     tests: [
       { address: 0x0098, initial: 0x3E, expected: 0x2E },
@@ -244,7 +241,6 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ],
   },
   {
-    // Buggy: Would expect it to execute twice (for each channel), but only runs once.
     name: "add instruction high address",
     instructions: [[
       { operation: "set", address: 0x98, value: 0x50 },
@@ -252,11 +248,10 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ]],
     tests: [
       { address: 0x0098, initial: 0x3E, expected: 0x50 },
-      { address: 0x0198, initial: 0x3E, expected: 0x60, correct: 0x70 },
+      { address: 0x0198, initial: 0x3E, expected: 0x70 },
     ],
   },
   {
-    // Buggy: add instruction executes twice.
     name: "add instruction high address A only",
     instructions: [[
       { operation: "set", address: 0x85, value: 0x01 },
@@ -265,11 +260,10 @@ export const TEST_SUITE: TestSuiteTest[] = [
     ]],
     tests: [
       { address: 0x0098, initial: 0x3E, expected: 0x50 },
-      { address: 0x0198, initial: 0x3E, expected: 0x5E, correct: 0x4E },
+      { address: 0x0198, initial: 0x3E, expected: 0x4E },
     ],
   },
   {
-    // Buggy: Both channels execute too many times, A more than B.
     name: "add instruction fuzz",
     instructions: [[
       { operation: "set", address: 0x98, value: 0x00 },
@@ -286,8 +280,8 @@ export const TEST_SUITE: TestSuiteTest[] = [
       { operation: "add", address: 0x198, value: 0x01 },
     ]],
     tests: [
-      { address: 0x0098, initial: 0x3E, expected: 0x05, correct: 0x03 },
-      { address: 0x0198, initial: 0x3E, expected: 0x08, correct: 0x07 },
+      { address: 0x0098, initial: 0x3E, expected: 0x03 },
+      { address: 0x0198, initial: 0x3E, expected: 0x09 },
     ],
   },
   {
@@ -327,7 +321,7 @@ export enum TestState {
   Broken,
   // Expected after state doesn't match after state.
   Failed,
-  // After state doesn't match correctly calculated state (indicates a buggy instruction).
+  // After state doesn't match correctly calculated state (indicates buggy execution).
   Incorrect,
   // None of the above.
   Passed,
@@ -339,7 +333,7 @@ export type InstructionTestTestResult = { state: TestState, results: Instruction
 
 type TestRunner = {
   peek: (address: number) => Promise<number>,
-  executeScratchpadMode: (modules: Instruction[][]) => Promise<void>,
+  executeScratchpadMode: (modules: Instruction[][], startModuleIndex?: number) => Promise<void>,
 };
 
 export async function testInstructions(runner: TestRunner, modules: Instruction[][], tests: InstructionTest[]): Promise<InstructionTestTestResult> {
@@ -352,8 +346,26 @@ export async function testInstructions(runner: TestRunner, modules: Instruction[
     beforeState[i] = await runner.peek(0x4000 + tests[i].address);
   }
 
+  // Add a bootstrapping module to the end of the module list that works around the per-channel execution of the
+  // initial module. We put this at the end to avoid changing the module indexes of the modules under test.
+  const testModules: Instruction[][] = [
+    ...modules,
+    [
+      // We'll enter here twice, once for channel A and then again for channel B.
+
+      // Override the channel flags to be both channels, this will carry into the later modules.
+      { operation: "set", address: 0x85, value: 0x03 },
+
+      // Set the condexec module to execute to be the first scratchpad module.
+      { operation: "set", address: 0x84, value: 0xC0 },
+
+      // Trigger condexec, use the bank as the comparator so that it's always equal.
+      { operation: "condexec", address: 0x8C },
+    ],
+  ];
+
   // Execute the instructions under test.
-  await runner.executeScratchpadMode(modules);
+  await runner.executeScratchpadMode(testModules, testModules.length - 1);
 
   // Get the current value for all the interesting memory addresses.
   const afterState: number[] = new Array(tests.length);

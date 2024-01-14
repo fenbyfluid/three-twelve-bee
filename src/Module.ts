@@ -408,10 +408,12 @@ export function findReferencedModules(instructions: Instruction[]): number[] {
 
 // TODO: Should we encode the instruction into the right bit of memory first?
 // TODO: Move this to a whole mock device we can use for tests.
-export function simulateInstruction(memory: { [key: number]: number }, instruction: Instruction): void {
+export function simulateInstruction(memory: { [key: number]: number }, instruction: Instruction): boolean {
+  let shouldStartNewModule = false;
+
   const channelBits = memory[0x0085];
   if (channelBits === 0) {
-    return;
+    return shouldStartNewModule;
   }
 
   let channelB = false;
@@ -464,17 +466,18 @@ export function simulateInstruction(memory: { [key: number]: number }, instructi
         break;
       case "condexec":
         if (memory[address] === memory[bank]) {
-          // switch_to_module(memory[0x0084]);
-          throw new Error("condexec instruction can't be simulated");
+          shouldStartNewModule = true;
         }
         break;
     }
 
-    // TODO: The firmware actually re-reads memory[0x0085] here.
+    // The firmware re-reads memory[0x0085] here, but it doesn't look like that can change the behaviour.
     if (channelB || (channelBits & 0x02) === 0) {
       break;
     }
 
     channelB = true;
   }
+
+  return shouldStartNewModule;
 }

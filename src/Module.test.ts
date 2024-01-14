@@ -131,7 +131,7 @@ test("parse interactive init module", () => {
   // Channel X: Current Width Modulation Select = Fast Timer, Set Value for Min and Rate
 });
 
-test("simple simulate set", () => {
+test("simulate simple set", () => {
   const memory = new Uint8Array(0x0400);
   memory[0x0085] = 0x03;
 
@@ -145,8 +145,8 @@ test("simple simulate set", () => {
   expect(memory[0x0198]).toEqual(0x50);
 });
 
-// Same test as "add instruction high address"
-test("simulate buggy add", () => {
+// Same test as "add instruction high address" without the test runner workaround.
+test("simulate add in start module", () => {
   const memory = new Uint8Array(0x0400);
   memory[0x0098] = 0x3E;
   memory[0x0198] = 0x3E;
@@ -177,7 +177,13 @@ describe("simulate instructions", () => {
 
   const runner = {
     peek: async (address: number) => memory[address - 0x4000],
-    executeScratchpadMode: async (modules: Instruction[][]) => {
+    executeScratchpadMode: async (modules: Instruction[][], startModuleIndex: number = 0) => {
+      // TODO: Move this implementation to a whole mock device.
+
+      if (startModuleIndex >= Math.max(1, modules.length)) {
+        throw new Error("invalid mode start module number");
+      }
+
       // This is our version of setting up the initial memory, we just do what the tests look at.
       TEST_SUITE.forEach(suiteTest => {
         suiteTest.tests.forEach(test => {
@@ -187,36 +193,59 @@ describe("simulate instructions", () => {
         });
       });
 
+      // TODO: This should live with simulateInstruction.
+      const simulateModule = (module: Instruction[]) => {
+        let shouldStartNewModule = false;
+
+        for (const instruction of module) {
+          if (simulateInstruction(memory, instruction)) {
+            shouldStartNewModule = true;
+          }
+        }
+
+        return shouldStartNewModule;
+      };
+
       // Affect both channels.
       memory[0x0085] = 0x03;
-      // TODO: Simulate module 1 (both channels, set gates on).
+
+      // Simulate module 1
+      simulateModule([
+        { operation: "set", address: 0x90, value: 0x07 },
+      ]);
 
       if (modules.length === 0) {
         return;
       }
 
-      if (modules.length > 1) {
-        throw new Error("can't simulate multiple modules");
-      }
+      let nextModuleToExecute: number | null = null;
 
       // The initial start module for a new mode has a slightly different execution pattern from normal,
       // it is executed twice independently, once for channel A, then again for channel B.
       // This is part of how the Split mode works with the built-in modules.
-      // TODO: It might be worth re-writing our test runner to execute as an invoked module to avoid this unique behaviour.
       for (const channelBits of [0x01, 0x02]) {
         memory[0x0085] = channelBits;
 
-        for (const instruction of modules[0]) {
-          simulateInstruction(memory, instruction);
+        if (simulateModule(modules[startModuleIndex]) || nextModuleToExecute !== null) {
+          nextModuleToExecute = memory[0x0084] - 0xC0;
+        }
+      }
+
+      while (nextModuleToExecute !== null) {
+        if (nextModuleToExecute < 0 || nextModuleToExecute >= modules.length) {
+          throw new Error("tried to jump to an invalid scratchpad module");
+        }
+
+        if (simulateModule(modules[nextModuleToExecute])) {
+          nextModuleToExecute = memory[0x0084] - 0xC0;
+        } else {
+          nextModuleToExecute = null;
         }
       }
     },
   };
 
-  // Filter out multi-module tests.
-  const testSuite = TEST_SUITE.filter(suiteTest => suiteTest.instructions.length === 1);
-
-  const runTest = async (suiteTest: TestSuiteTest) => {
+  test.each(TEST_SUITE)("$name", async (suiteTest: TestSuiteTest) => {
     const testResult = await testInstructions(runner, suiteTest.instructions, suiteTest.tests);
 
     for (const result of testResult.results) {
@@ -224,13 +253,5 @@ describe("simulate instructions", () => {
         expect(result.after).toEqual(result.expected);
       }
     }
-  };
-
-  const suiteHasFaultyTests = (suiteTest: TestSuiteTest) => suiteTest.tests.some(instructionTest => instructionTest.correct !== undefined);
-
-  const workingTestSuite = testSuite.filter(suiteTest => !suiteHasFaultyTests(suiteTest));
-  test.each(workingTestSuite)("$name", runTest);
-
-  const faultyTestSuite = testSuite.filter(suiteTest => suiteHasFaultyTests(suiteTest));
-  test.each(faultyTestSuite)("$name", runTest);
+  });
 });

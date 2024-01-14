@@ -487,7 +487,11 @@ export class DeviceApi {
     return (await this.getUserModeModuleInstructionBytes(module)).map(decodeInstruction);
   };
 
-  public readonly executeScratchpadMode = async (modules: Instruction[][]): Promise<void> => {
+  public readonly executeScratchpadMode = async (modules: Instruction[][], startModuleIndex = 0): Promise<void> => {
+    if (startModuleIndex < 0 || startModuleIndex >= Math.max(1, modules.length)) {
+      throw new Error("invalid mode start module number");
+    }
+
     let cursor = 0;
     for (let i = 0; i < modules.length; ++i) {
       // Set the module start offset.
@@ -525,7 +529,7 @@ export class DeviceApi {
 
     // Write the scratchpad module ID as the start module for the selected mode.
     // This seems to be set in the EEPROM even for the scratchpad modules.
-    await this.connection.poke(0x8018 + (scratchpadMode - 0x88), 0xC0);
+    await this.connection.poke(0x8018 + (scratchpadMode - 0x88), 0xC0 + startModuleIndex);
 
     // Set the in-memory high mode to include our newly assigned scratchpad mode.
     // This isn't required to switch to the mode via the API.

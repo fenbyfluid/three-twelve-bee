@@ -126,9 +126,6 @@ export function InstructionTester(props: { device: DeviceConnection }) {
       Instruction Tester
       <Button large={true} intent="primary" icon="play" disabled={testsRunning} onClick={runTests}>Run Tests</Button>
     </H3>
-    <Callout intent="warning" style={{ marginBottom: 20 }}>
-      Some instruction parameters produce unexpected results (consistently) when run as an initial module.
-    </Callout>
     {testInfo}
   </div>;
 }
