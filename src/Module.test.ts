@@ -146,28 +146,29 @@ test("simple simulate set", () => {
 });
 
 // Same test as "add instruction high address"
-test.skip("simulate buggy add", () => {
+test("simulate buggy add", () => {
   const memory = new Uint8Array(0x0400);
-  memory[0x0085] = 0x03;
   memory[0x0098] = 0x3E;
   memory[0x0198] = 0x3E;
 
-  simulateInstruction(memory, {
-    operation: "set",
-    address: 0x98,
-    value: 0x50,
-  });
+  // See explanation below in mock executeScratchpadMode.
+  for (const channelBits of [0x01, 0x02]) {
+    memory[0x0085] = channelBits;
 
-  simulateInstruction(memory, {
-    operation: "add",
-    address: 0x198,
-    value: 0x10,
-  });
+    simulateInstruction(memory, {
+      operation: "set",
+      address: 0x98,
+      value: 0x50,
+    });
+
+    simulateInstruction(memory, {
+      operation: "add",
+      address: 0x198,
+      value: 0x10,
+    });
+  }
 
   expect(memory[0x0098]).toEqual(0x50);
-
-  // This is what we get on-device, it only executes once for some reason.
-  // Our simulation adds twice, once per channel iteration, which seems to be correct according to the firmware.
   expect(memory[0x0198]).toEqual(0x60);
 });
 
@@ -177,9 +178,7 @@ describe("simulate instructions", () => {
   const runner = {
     peek: async (address: number) => memory[address - 0x4000],
     executeScratchpadMode: async (modules: Instruction[][]) => {
-      // Affect both channels.
-      memory[0x0085] = 0x03;
-
+      // This is our version of setting up the initial memory, we just do what the tests look at.
       TEST_SUITE.forEach(suiteTest => {
         suiteTest.tests.forEach(test => {
           if (test.initial !== undefined) {
@@ -187,6 +186,10 @@ describe("simulate instructions", () => {
           }
         });
       });
+
+      // Affect both channels.
+      memory[0x0085] = 0x03;
+      // TODO: Simulate module 1 (both channels, set gates on).
 
       if (modules.length === 0) {
         return;
@@ -196,8 +199,16 @@ describe("simulate instructions", () => {
         throw new Error("can't simulate multiple modules");
       }
 
-      for (const instruction of modules[0]) {
-        simulateInstruction(memory, instruction);
+      // The initial start module for a new mode has a slightly different execution pattern from normal,
+      // it is executed twice independently, once for channel A, then again for channel B.
+      // This is part of how the Split mode works with the built-in modules.
+      // TODO: It might be worth re-writing our test runner to execute as an invoked module to avoid this unique behaviour.
+      for (const channelBits of [0x01, 0x02]) {
+        memory[0x0085] = channelBits;
+
+        for (const instruction of modules[0]) {
+          simulateInstruction(memory, instruction);
+        }
       }
     },
   };
@@ -221,5 +232,5 @@ describe("simulate instructions", () => {
   test.each(workingTestSuite)("$name", runTest);
 
   const faultyTestSuite = testSuite.filter(suiteTest => suiteHasFaultyTests(suiteTest));
-  test.skip.each(faultyTestSuite)("$name", runTest);
+  test.each(faultyTestSuite)("$name", runTest);
 });
