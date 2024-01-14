@@ -337,8 +337,19 @@ type TestRunner = {
 };
 
 export async function testInstructions(runner: TestRunner, modules: Instruction[][], tests: InstructionTest[]): Promise<InstructionTestTestResult> {
-  // Execute an empty module to ensure the channel memory is in a clean state.
-  await runner.executeScratchpadMode([]);
+  const testInitInstructions: Instruction[] = [
+    // Turn off the output gates for safety.
+    { operation: "set", address: 0x90, value: 0x06 },
+
+    // Clear the ramp from the mode change.
+    { operation: "and", address: 0xA3, value: 0xFC },
+    { operation: "set", address: 0x9C, value: 0xFF },
+  ];
+
+  // Execute a nearly empty module to ensure the channel memory is in a consistent state.
+  await runner.executeScratchpadMode([
+    testInitInstructions,
+  ]);
 
   // Get the initial value for all the interesting memory addresses.
   const beforeState: number[] = new Array(tests.length);
@@ -352,6 +363,7 @@ export async function testInstructions(runner: TestRunner, modules: Instruction[
     ...modules,
     [
       // We'll enter here twice, once for channel A and then again for channel B.
+      ...testInitInstructions,
 
       // Override the channel flags to be both channels, this will carry into the later modules.
       { operation: "set", address: 0x85, value: 0x03 },

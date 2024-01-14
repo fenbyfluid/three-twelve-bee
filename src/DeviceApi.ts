@@ -532,8 +532,8 @@ export class DeviceApi {
     await this.connection.poke(0x8018 + (scratchpadMode - 0x88), 0xC0 + startModuleIndex);
 
     // Set the in-memory high mode to include our newly assigned scratchpad mode.
-    // This isn't required to switch to the mode via the API.
-    // await this.currentSettings.setTopMode(scratchpadMode);
+    // This isn't required to switch to the mode via the API, but it lets us access it later.
+    await this.currentSettings.setTopMode(scratchpadMode);
 
     // Switch to the new scratchpad mode.
     await this.switchToMode(scratchpadMode);

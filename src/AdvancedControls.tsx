@@ -559,13 +559,13 @@ export function AdvancedControls({ device }: { device: DeviceApi }) {
       <TabsExpander />
       <Button intent="primary" onClick={async () => {
         // Reset 0x4080-0x4087, 0x4088-0x40BF, and 0x4188-0x41BF to default values.
-        await device.executeScratchpadMode([]);
-
-        // Cancel the ramp and set the value to 100% to clean up the UI
-        // const rampVariable = device.channelA.ramp;
-        // const selectFlags = await rampVariable.getSelect();
-        // await rampVariable.setSelect({ ...selectFlags, timerSelection: TimerSelection.None });
-        // await rampVariable.setValue(255);
+        await device.executeScratchpadMode([
+          // [
+          //   // Cancel the ramp and set the value to 100% to clean up the UI.
+          //   { operation: "and", address: 0xA3, value: 0xFC },
+          //   { operation: "set", address: 0x9C, value: 0xFF },
+          // ],
+        ]);
       }}>New Routine</Button>
     </div>
     <div style={bodyStyle}>

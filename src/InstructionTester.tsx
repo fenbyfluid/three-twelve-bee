@@ -1,4 +1,4 @@
-import { Button, Callout, Collapse, H3, Icon } from "@blueprintjs/core";
+import { Button, Callout, Collapse, H3 } from "@blueprintjs/core";
 import React, { useEffect, useRef, useState } from "react";
 import { DeviceApi } from "./DeviceApi";
 import { DeviceConnection } from "./DeviceConnection";
@@ -10,7 +10,7 @@ import {
   TestSuiteTest,
 } from "./InstructionTestSuite";
 
-async function runTestSuite(connection: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[], cancelledRef?: React.MutableRefObject<boolean>) {
+async function runTestSuite(connection: DeviceConnection, setSuiteResults: React.Dispatch<React.SetStateAction<(InstructionTestTestResult | undefined)[]>>, suite: TestSuiteTest[], testIndex?: number, cancelledRef?: React.MutableRefObject<boolean>) {
   const device = new DeviceApi(connection);
 
   const runner = {
@@ -18,9 +18,21 @@ async function runTestSuite(connection: DeviceConnection, setSuiteResults: React
     executeScratchpadMode: device.executeScratchpadMode.bind(device),
   };
 
-  setSuiteResults(new Array(suite.length));
+  setSuiteResults(prevState => {
+    if (testIndex !== undefined) {
+      const newState = prevState.slice();
+      newState[testIndex] = undefined;
+      return newState;
+    } else {
+      return new Array(suite.length);
+    }
+  });
 
   for (let i = 0; i < suite.length; ++i) {
+    if (testIndex !== undefined && i !== testIndex) {
+      continue;
+    }
+
     const results = await testInstructions(runner, suite[i].instructions, suite[i].tests);
 
     console.log(suite[i].name, suite[i].instructions, results);
@@ -37,7 +49,7 @@ async function runTestSuite(connection: DeviceConnection, setSuiteResults: React
   }
 }
 
-export function TestResult(props: { suite: TestSuiteTest, results?: InstructionTestTestResult }) {
+export function TestResult(props: { suite: TestSuiteTest, results?: InstructionTestTestResult, runTest?: () => void }) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -78,12 +90,15 @@ export function TestResult(props: { suite: TestSuiteTest, results?: InstructionT
     </Callout>
   });
 
-  return <Callout onClick={() => setExpanded(!expanded)} intent={intent} icon={icon} style={{ marginBottom: 10, cursor: "pointer" }}>
-    {props.suite.name}
-    <Collapse isOpen={details && expanded}>
-      <div>{details}</div>
-    </Collapse>
-  </Callout>
+  return <div style={{ margin: "0 20px 10px", display: "flex", gap: 10 }}>
+    <Callout onClick={() => setExpanded(!expanded)} intent={intent} icon={icon} style={{ cursor: "pointer" }}>
+      {props.suite.name}
+      <Collapse isOpen={details && expanded}>
+        <div>{details}</div>
+      </Collapse>
+    </Callout>
+    <Button icon="play" large={true} style={{ boxShadow: "none" }} disabled={!props.runTest} onClick={() => props.runTest && props.runTest()} />
+  </div>;
 }
 
 export function InstructionTester(props: { device: DeviceConnection }) {
@@ -104,16 +119,10 @@ export function InstructionTester(props: { device: DeviceConnection }) {
     };
   }, [cancelledRef]);
 
-  const testInfo = testSuite.map((suite, i) => {
-    const results = suiteResults[i];
-
-    return <TestResult key={"test-" + i} suite={suite} results={results} />
-  });
-
-  const runTests = () => {
+  const runTests = (testIndex?: number) => {
     setTestsRunning(true);
 
-    runTestSuite(props.device, setSuiteResults, testSuite, cancelledRef)
+    runTestSuite(props.device, setSuiteResults, testSuite, testIndex, cancelledRef)
       .then(() => {
         if (!cancelledRef.current) {
           setTestsRunning(false);
@@ -121,10 +130,16 @@ export function InstructionTester(props: { device: DeviceConnection }) {
       });
   };
 
-  return <div>
+  const testInfo = testSuite.map((suite, i) => {
+    const results = suiteResults[i];
+
+    return <TestResult key={"test-" + i} suite={suite} results={results} runTest={!testsRunning ? () => runTests(i) : undefined} />
+  });
+
+  return <div style={{ marginBottom: 20 }}>
     <H3 style={{ margin: 20, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
       Instruction Tester
-      <Button large={true} intent="primary" icon="play" disabled={testsRunning} onClick={runTests}>Run Tests</Button>
+      <Button large={true} intent="primary" icon="play" disabled={testsRunning} onClick={() => runTests()}>Run Tests</Button>
     </H3>
     {testInfo}
   </div>;

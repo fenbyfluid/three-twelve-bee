@@ -1,4 +1,4 @@
-import { Button, H3, H4, H6, Pre } from "@blueprintjs/core";
+import { Button, Card, H3, H4, H6, Pre } from "@blueprintjs/core";
 import React, { useEffect, useState } from "react";
 import { DeviceApi, Mode } from "./DeviceApi";
 import { RAM_VARIABLES } from "./MemoryVariables";
@@ -173,14 +173,18 @@ function ModuleDisplay({ index, instructions, referencedModules }: ModuleInfo) {
     <H6>0x{index.toString(16).toUpperCase().padStart(2, "0")} ({index}) =&gt; [{
       referencedModules.map(index => `0x${index.toString(16).toUpperCase().padStart(2, "0")} (${index})`).join(", ")
     }]</H6>
-    {instructions.map((instruction, i) => <InstructionDisplay key={i} instruction={instruction} />)}
+    <Card style={{ paddingBottom: 1, marginBottom: 20 }}>
+      {instructions.map((instruction, i) => <InstructionDisplay key={i} instruction={instruction} />)}
+    </Card>
   </div>;
 }
 
 function ModeDisplay({ index, modules }: ModeInfo) {
   return <div>
     <H4>User {index + 1}</H4>
-    {modules.map(module => <ModuleDisplay key={module.index} {...module} />)}
+    <Card style={{ paddingBottom: 1, marginBottom: 20 }}>
+      {modules.map(module => <ModuleDisplay key={module.index} {...module} />)}
+    </Card>
   </div>;
 }
 
